@@ -1,0 +1,1241 @@
+/* LCM_SCALED:
+   Purpose: Finds the least common multiple of two decimal values
+            by scaling them to integers before applying GCD.
+   Returns: Decimal approximation of the true LCM (number)
+
+   Parameters:
+   - a (required): First decimal input
+   - b (required): Second decimal input
+
+   Notes:
+   - Designed for harmonizing values that may not be exact integers.
+   - Scaling factor (1,000,000) determines precision of approximation.
+   - Particularly useful in modeling periodic systems such as synodic cycles.
+   - Result is an approximation, not a mathematically exact LCM.
+
+   Example:
+   LCM_SCALED(1.618033989, 2.414213562) ≈ 177558.1971
+*/
+
+LCM_SCALED = LAMBDA(a, b,
+    LET(
+        scale, 10^6,  /* Fixed scaling factor to convert decimals to integers */
+        ascale, ROUND(a * scale, 0),  /* Scaled and rounded a */
+        bscale, ROUND(b * scale, 0),  /* Scaled and rounded b */
+        prod, ascale * bscale,        /* Product of the scaled values */
+        gcd, GCD(ascale,bscale),      /* Greatest common divisor */
+        xlcm, prod / gcd,             /* LCM of the scaled integers */
+        result, xlcm / scale,         /* Rescale back to original magnitude */
+        result
+    )
+);
+
+/* LCM_SCALED_ARRAY:
+   Purpose: Computes the least common multiple (LCM) of an array of decimal or fractional values.
+   Returns: A single numeric value (the LCM of the scaled inputs), as a decimal.
+
+   Parameters:
+   - array (required): A one-dimensional or two-dimensional array of numeric values. Can include non-integers.
+
+   Notes:
+   - Values are scaled by 10^6 to allow accurate LCM computation on decimal inputs.
+   - Internally rounds scaled values to avoid floating point artifacts.
+   - Uses MAP to apply scaling and REDUCE to iteratively compute the LCM via the GCD method.
+   - Returns the LCM scaled back to original units.
+   - Inspired by number theory, adapted for Excel's decimal constraints.
+
+   Example:
+   LCM_SCALED_ARRAY({0.5, 1.25, 2}) returns 10
+*/
+
+LCM_SCALED_ARRAY = LAMBDA(array,
+    LET(
+        scale, 10^6,  /* Scale to convert decimals to integers */
+        scaled, MAP(array, LAMBDA(x, ROUND(x * scale, 0))),  /* Round after scaling */
+        scaledLCM, REDUCE(1, scaled, LAMBDA(acc, x, (acc * x) / GCD(acc, x))),  /* Iteratively compute LCM */
+        scaledLCM / scale  /* Scale back to original units */
+    )
+);
+
+
+/* SPLITFRACTION:
+   Purpose: Splits a fractional string (e.g., "3/4") into numerator and denominator components.
+   Returns: A 2-element array containing the numerator and denominator as numbers.
+
+   Parameters:
+   - input (required): A string representing a fraction (e.g., "5/8").
+   - mode (optional): Default is 0.
+       - 0: Returns a vertical (row-wise) array.
+       - 1: Returns a horizontal (column-wise) array.
+
+   Notes:
+   - Input must be in "numerator/denominator" format. No validation is performed on malformed inputs.
+   - Uses `TEXTBEFORE()` and `TEXTAFTER()` to parse the string, so behavior may be inconsistent for nested or invalid fractions.
+   - Inspired by simple parsing needs for rational number handling in spreadsheet form.
+
+   Example:
+   SPLITFRACTION("7/16") → {7;16}      (default mode)
+   SPLITFRACTION("7/16", 1) → {7,16}
+*/
+
+SPLITFRACTION = LAMBDA(input, [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),  /* Default to vertical layout if mode omitted or invalid */
+        numer, VALUE(TEXTBEFORE(input, "/")),              /* Extract numerator from fraction string */
+        denom, VALUE(TEXTAFTER(input, "/")),               /* Extract denominator */
+        list, TEXTJOIN("|", , numer, denom),               /* Join with delimiter for easy splitting */
+        output, SWITCH(
+            mode,
+            0, TEXTSPLIT(list, "|"),                       /* Return as vertical array */
+            1, TRANSPOSE(TEXTSPLIT(list, "|"))             /* Return as horizontal array */
+        ),
+        output
+    )
+);
+
+/* FRACTION_TO_DECIMAL:
+   Purpose: Converts a string representing a fraction (e.g. "3/4") into a decimal number.
+   Returns: A single decimal number (e.g. 0.75)
+
+   Parameters:
+   - input (required): A string in the format "numerator/denominator"
+
+   Notes:
+   - Assumes valid input format with a single `/` character.
+   - Does not currently handle mixed numbers (e.g. "1 3/4") or validate zero denominators.
+   - Returns a decimal value by dividing numerator by denominator.
+
+   Example:
+   FRACTION_TO_DECIMAL("3/4") → 0.75
+*/
+
+FRACTION_TO_DECIMAL = LAMBDA(input,
+    LET(
+        numer, TEXTBEFORE(input, "/"),   /* Extract numerator string */
+        denom, TEXTAFTER(input, "/"),    /* Extract denominator string */
+        numer / denom                    /* Return decimal result */
+    )
+);
+
+
+
+/* SUM_N_TERMS:
+   Purpose: Calculates the sum of an arithmetic progression.
+   Returns: Total sum of the sequence (scalar) or its upper bound if mode = 1.
+
+   Parameters:
+   - lbound (required): The starting value of the sequence.
+   - length (required): The number of items in the sequence.
+   - increment (optional): Step between values (default is 1).
+   - mode (optional): 0 = return sum (default), 1 = return upper bound only.
+
+   Notes:
+   - Uses the arithmetic series formula.
+   - Useful for calculating uniform intervals in controlled progressions.
+
+   Example:
+   SUM_N_TERMS(4, 15, 5) → 585
+   (Sums 4 + 9 + 14 + ... + 74, incrementing by 5)
+*/
+
+SUM_N_TERMS = LAMBDA(lbound, length, [increment], [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),             /* Default mode = 0 (sum) */
+        increment, IF(ISOMITTED(increment), 1, increment),            /* Default increment = 1 */
+        ubound, lbound + (length - 1) * increment,                    /* Calculate upper bound of the series */
+        total, (length / 2) * ((2 * lbound) + ((length - 1) * increment)), /* Arithmetic progression sum formula */
+        SWITCH(mode,
+            0, total,     /* Return full sum */
+            1, ubound     /* Return upper bound only */
+        )
+    )
+);
+
+
+/* SUM_INTEGERS:
+   Purpose: Calculates the sum of natural, even, or odd numbers up to a given value.
+   Returns: Sum of numbers from 1 to n, or only even/odd numbers, depending on mode.
+
+   Parameters:
+   - input (required): Upper limit of summation.
+   - mode (optional): 
+     0 = sum of all integers from 1 to input (default),
+     1 = sum of all even numbers ≤ input,
+     2 = sum of all odd numbers ≤ input.
+
+   Notes:
+   - Uses closed-form formulas for performance.
+   - Designed for quick access to basic sequence sums.
+
+   Example:
+   SUM_INTEGERS(10) → 55  (1+2+3+...+10)
+   SUM_INTEGERS(10, 1) → 30  (2+4+6+8+10)
+   SUM_INTEGERS(10, 2) → 25  (1+3+5+7+9)
+*/
+
+SUM_INTEGERS = LAMBDA(input, [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 2), 0, mode),    /* Default to mode 0 (all integers) */
+        
+        even_ubound, IF(ISEVEN(input), input, input - 1),     /* Nearest even ≤ input */
+        odd_ubound, IF(ISODD(input), input, input - 1),       /* Nearest odd ≤ input */
+        
+        output, SWITCH(
+            mode,
+            0, (input * (input + 1)) / 2,                     /* Sum of all integers from 1 to n */
+            1, (even_ubound * (even_ubound + 2)) / 4,         /* Sum of even numbers: n(n+2)/4 */
+            2, ((odd_ubound + 1) / 2) ^ 2                     /* Sum of odd numbers: ((n+1)/2)^2 */
+        ),
+        output
+    )
+);
+
+
+/* SPLIT_INTEGER_DECIMAL:
+   Purpose: Splits a number into its integer and decimal (mantissa) parts.
+   Returns: A horizontal (row) or vertical (column) array with [integer, decimal].
+
+   Parameters:
+   - input (required): The numeric value to split.
+   - mode (optional): 0 = return row {int, dec}; 1 = return column {int; dec}. Default is 0.
+   - sign (optional): 0 = decimal is always positive (default); 1 = preserves original sign.
+   - decimals (optional): Number of decimal places to round to (default is 3).
+
+   Notes:
+   - Works with both positive and negative numbers.
+   - Preserves leading zeroes in decimals when cast as text.
+   - If sign = 1, the decimal portion will match the input’s sign (e.g., -0.73 instead of 0.73).
+
+   Example:
+   SPLIT_INTEGER_DECIMAL(-12.734, 1, 1) → {-12; -0.734}
+*/
+
+SPLIT_INTEGER_DECIMAL = LAMBDA(input, [mode], [sign], [decimals], 
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),                        /* Default to horizontal row if mode not provided */
+        sign, IF(OR(ISOMITTED(sign), sign > 1), 0, sign),                       /* Default to unsigned decimal */
+        decimals, IF(OR(ISOMITTED(decimals), decimals = 0), 3, decimals),      /* Default to 3 decimal places if omitted */
+
+        int_part, QUOTIENT(input, 1),                                           /* Extract integer part */
+        dec_part, SWITCH(                                                      /* Compute decimal part */
+            sign,
+            0, ABS(ROUND(input - TRUNC(input), decimals)),                     /* Unsigned decimal */
+            1, ROUND(input - TRUNC(input), decimals)                           /* Signed decimal */
+        ),
+
+        list, TEXTJOIN(" ", , int_part, dec_part),                             /* Join as text for splitting */
+        output, SWITCH(mode,                                                        /* Split based on mode */
+            0, TOROW(VALUE(TEXTSPLIT(list, " "))),                             /* Horizontal: {int, dec} */
+            1, TOCOL(VALUE(TEXTSPLIT(list, " ")))                              /* Vertical: {int; dec} */
+        ),
+
+        output
+    )
+);
+
+
+/* GET_DECIMAL_PART:
+   Purpose: Extracts the decimal (mantissa) portion of a number.
+   Returns: A single decimal value.
+
+   Parameters:
+   - input (required): The number from which to extract the decimal portion.
+   - precision (optional): Number of decimal places to round to (default is 3).
+   - sign (optional): 0 = absolute value (default); 1 = preserve original sign of decimal.
+
+   Notes:
+   - Unlike SPLIT_INTEGER_DECIMAL, this function returns only the decimal portion.
+   - If input is a whole number, returns 0 or -0 depending on sign setting.
+   - Useful for isolating the fractional component of floats for analysis or formatting.
+
+   Example:
+   GET_DECIMAL_PART(-7.326, 3, 1) → -0.326
+*/
+
+GET_DECIMAL_PART = LAMBDA(input, [sign], [precision],
+    LET(
+        sign, IF(OR(ISOMITTED(sign), sign > 1), 0, sign),
+        precision, IF(ISOMITTED(precision), 3, precision),
+
+        // Compute decimal portion with or without sign
+        dec_part, SWITCH(
+            sign,
+            0, ABS(ROUND(input - TRUNC(input), precision)),  // Absolute (default)
+            1, ROUND(input - TRUNC(input), precision)        // Preserve sign
+        ),
+
+        dec_part
+    )
+);
+
+
+/* DIGITAL_ROOT:
+   Purpose: Calculates the digital root of a number (i.e., iterative digit sum until a single digit remains).
+   Returns: A single digit (1–9), or 0 if input is 0.
+
+   Parameters:
+   - input (required): The number whose digital root is to be calculated.
+     - May be a positive integer or decimal.
+     - Decimal points are ignored in processing.
+
+   Notes:
+   - Common in numerology and checksum calculations.
+   - Works by summing digits repeatedly: e.g., 942 → 9+4+2=15 → 1+5=6.
+   - Uses a mathematical shortcut based on modulo 9:
+       Digital Root = 1 + MOD(n - 1, 9)
+   - For decimals, the digits are treated as if concatenated: e.g., 3.14 → 314.
+
+   Example:
+   DIGITAL_ROOT(942) → 6
+   DIGITAL_ROOT(3.14) → 8
+*/
+
+DIGITAL_ROOT = LAMBDA(input,
+    LET(
+        // Decide input mode: 0 = integer, 1 = decimal (will remove the dot)
+        mode, IF(input < 1, 1, 0),
+
+        // Normalize input: remove decimal point if present
+        input, SWITCH(mode, 0, TRUNC(input), 1, VALUE(SUBSTITUTE(input, ".", ""))),
+
+        // Sum of all digits in the number
+        sub, SUMPRODUCT(--MID(input, SEQUENCE(LEN(input)), 1)),
+
+        // Digital root formula (modulo-9 shortcut)
+        root, 1 + MOD(ABS(sub) - 1, 9),
+
+        root
+    )
+);
+
+
+/* DIGITAL_SUM:
+   Purpose: Calculates the digital subroot (single-pass digit sum) of the input number.
+   Returns: A single number (typically 1–99), not reduced beyond the first digit sum.
+
+   Parameters:
+   - input (required): The number to evaluate.
+     - Can be a whole number or decimal.
+     - If a decimal, all digits are included (e.g., 3.14 → 3 + 1 + 4 = 8).
+
+   Notes:
+   - Returns the same result as SUMDIGITS (if defined separately).
+   - Does not recursively reduce to a single digit (contrast with DIGITAL_ROOT).
+   - Returns the input unchanged if it's one of the master numerology values (11, 22, or 33).
+   - Useful for numerological analysis or checksum approximations.
+
+   Example:
+   DIGITAL_SUM(5432) → 14
+   DIGITAL_SUM(3.14) → 8
+   DIGITAL_SUM(22)   → 22
+*/
+
+
+DIGITAL_SUM = LAMBDA(input,
+    LET(
+        mode, IF(input < 1, 1, 0),
+        input, SWITCH(mode, 0, TRUNC(input), 1, VALUE(SUBSTITUTE(input, ".", "")), ),
+        IF(
+            AND(input <> 11, input <> 22, input <> 33),
+            SUMPRODUCT(--MID(input, SEQUENCE(LEN(input)), 1)),
+            input
+        )
+    )
+);
+
+
+/* ROOT_NUMERO:
+
+Calculates the numerological root of the input
+*/
+
+ROOT_NUMERO = LAMBDA(input,
+    LET(
+        TempTot, SUMPRODUCT(--MID(input, SEQUENCE(LEN(input)), 1)),
+        fmt, "#",
+        IF(
+            input < 10,
+            TEXT(input, fmt),
+            TEXTJOIN(
+                "/",
+                ,
+                IF(
+                    (input = 11) + (input = 22) + (input = 33),
+                    TEXT(input, fmt),
+                    IF(TempTot < 10, "", TempTot)
+                ),
+                TEXT(1 + MOD(ABS(input) - 1, 9), fmt)
+            )
+        )
+    )
+);
+
+/* POLYGONAL:
+   Purpose: Returns the nth s-gonal (polygonal) number using the general figurate formula.
+   Returns: A scalar value representing the nth polygonal number.
+
+   Parameters:
+   - sides (required): Number of sides in the polygon (e.g. 3 = triangle, 4 = square, etc.)
+   - term (required): The nth term in the polygonal sequence.
+
+   Notes:
+   - The formula generalizes to any number of sides ≥ 3.
+     Formula: P(s, n) = ((s - 2) × (n² - n)) / 2 + n
+   - For sides = 3: Triangular numbers, sides = 4: Square numbers, sides = 5: Pentagonal numbers, etc.
+
+   Example:
+   POLYGONAL(3, 5) → 15 (5th triangular number)
+   POLYGONAL(6, 2) → 12 (2nd hexagonal number)
+*/
+
+POLYGONAL = LAMBDA(sides, term,
+    LET(
+        base_factor, (sides - 2),
+        triangular_component, (term ^ 2 - term) / 2,
+        result, base_factor * triangular_component + term,
+        result
+    )
+);
+
+
+
+
+
+/* POLYROOTS:
+   Purpose: Calculates the real roots of a quadratic polynomial ax² + bx + c = 0.
+   Returns: 
+   - A single root (scalar) if the discriminant is zero.
+   - A vertical array (column) of two real roots if discriminant > 0.
+   - The string "NONE" if the equation has no real roots.
+
+   Parameters:
+   - a (required): Coefficient of x²
+   - b (required): Coefficient of x
+   - c (required): Constant term
+
+   Notes:
+   - Uses the quadratic formula:
+       x = (-b ± √(b² - 4ac)) / 2a
+   - Returns only real solutions. Complex roots are not supported.
+   - Results are rounded to 3 decimal places and returned as formatted text.
+   - If discriminant = 0, returns one root as a scalar.
+   - If discriminant < 0, returns "NONE" instead of error.
+
+   Example:
+   POLYROOTS(1, -3, 2) → {2.000; 1.000}
+   POLYROOTS(1, 2, 1) → -1.000
+   POLYROOTS(1, 0, 1) → "NONE"
+*/
+
+POLYROOTS = LAMBDA(a, b, c,
+    LET(
+        discriminant, b ^ 2 - 4 * a * c,
+
+        // First root if real or equal roots
+        root1, IF(discriminant >= 0, (-b + SQRT(discriminant)) / (2 * a), ""),
+
+        // Second root only if discriminant > 0
+        root2, IF(discriminant > 0, (-b - SQRT(discriminant)) / (2 * a), ""),
+
+        // Format and return based on discriminant
+        output, IF(
+            discriminant < 0,
+            "NONE",
+            IF(
+                discriminant = 0,
+                FIXED(root1, 3),  // One real root
+                TRANSPOSE(
+                    TEXTSPLIT(
+                        FIXED(root1, 3) & " " & FIXED(root2, 3),
+                        " "
+                    )
+                )
+            )
+        ),
+        output
+    )
+);
+
+
+/* NORMALIZE_DECIMAL:
+   Purpose: Scales a positive number down by a power of 10 to produce a normalized decimal less than 1.
+   Returns: A decimal number between 0 and 1, preserving the original digits after the decimal point.
+
+   Parameters:
+   - input (required): The number to normalize (e.g., 123 → 0.123).
+   - precision (optional): Number of decimal places to round to (default: length of input + 3).
+
+   Notes:
+   - This function does not modify numbers already less than 1.
+   - Useful for expressing large numbers as decimals preserving significant digits.
+   - Behavior is undefined for negative values or non-numeric input.
+
+   Example:
+   NORMALIZE_DECIMAL(12345) → 0.12345
+*/
+
+NORMALIZE_DECIMAL = LAMBDA(input, [precision],
+    LET(
+        // Default precision = digit count of input + 3 (extra rounding buffer)
+        default_prec, LEN(TEXT(ABS(input), "0")) + 3,
+        prec, IF(ISOMITTED(precision), default_prec, precision),
+
+        // If input < 1, it's already normalized
+        normalized, IF(
+            input < 1,
+            input,
+            input / 10 ^ (INT(LOG10(input)) + 1)
+        ),
+
+        // Return rounded result
+        ROUND(normalized, prec)
+    )
+);
+
+
+/* ROOT:
+   Purpose: Calculates the x-th root of a number (or square root if no root is specified).
+   Returns: A decimal number representing the root result.
+
+   Parameters:
+   - n (required): The number to take the root of.
+   - x (optional): The root degree. Defaults to 2 (square root) if omitted.
+
+   Notes:
+   - Supports fractional roots (e.g., cube root, 1.5th root).
+   - If x is omitted, defaults to SQRT(n).
+   - Negative bases with fractional exponents will return errors (Excel limitation).
+   - No internal validation for complex root handling is performed.
+
+   Example:
+   ROOT(16) → 4
+   ROOT(27, 3) → 3
+   ROOT(81, 0.5) → 9
+*/
+
+ROOT = LAMBDA(n, [x],
+    LET(
+        // Default to square root if root degree is not provided
+        root_result, IF(ISOMITTED(x),
+            SQRT(n),
+            n ^ (1 / x)
+        ),
+        root_result
+    )
+);
+
+/* APPROXIMATE_FRACTION:
+   Purpose: Converts a decimal number into a text-formatted fractional approximation.
+   Returns: A string representing the closest fractional (or mixed number) equivalent.
+
+   Parameters:
+   - input (required): The decimal number to approximate.
+   - mode (optional): Default = 0.
+       - 0: Return a simple fraction (e.g. "7/8")
+       - 1: Return a mixed number if applicable (e.g. "2-3/8")
+   - prec (optional): Number of digits in the denominator (default = 3, i.e., up to 999).
+
+   Notes:
+   - Uses Excel’s built-in TEXT() function with flexible fraction formatting.
+   - Mixed fractions are shown only when the whole number part is non-zero.
+   - The prec argument defines the maximum denominator complexity.
+   - Does not reduce denominators manually; relies on Excel’s approximation.
+
+   Example:
+   APPROXIMATE_FRACTION(2.375, 1, 2) → "2-3/8"
+   APPROXIMATE_FRACTION(0.333, 0, 2) → "1/3"
+*/
+
+APPROXIMATE_FRACTION = LAMBDA(input, [mode], [prec],
+    LET(
+        mode, IF((mode > 1) + (ISOMITTED(mode)), 0, mode),
+        prec, IF(ISOMITTED(prec), 3, prec),
+        fmt, CONCAT("?/", REPT("?", prec)),                        /* Construct fraction format string (e.g. "?/???" for prec = 3) */
+        fraction, SWITCH(                                          /* Format either entire input or just the decimal part */
+            mode,
+            0, TEXT(input, fmt),                                   /* Simple fraction like "5/8" */
+            1, TEXT(MOD(input, 1), fmt)                            /* Only decimal part for mixed format, e.g. "3/8" */
+        ),
+        output, SWITCH(
+            mode,
+            0, fraction,
+            1, IF(
+                QUOTIENT(input, 1) <> 0,
+                TEXTJOIN("-", , QUOTIENT(input, 1), fraction),     /* Combine whole number with fraction for "2-3/8" style */
+                fraction                                           /* If input < 1, just return "3/8" */
+            )
+        ),
+        output
+    )
+);
+
+
+/* PCT_POSITION:
+   Purpose: Calculates the relative position of a target value within a range.
+   Returns: A decimal value between 0 and 1 (or outside that range if target exceeds bounds).
+
+   Parameters:
+   - target (required): The value whose position is being evaluated.
+   - max (required): The upper bound of the range.
+   - min (required): The lower bound of the range.
+   - prec (optional): Number of decimal places to round the result (default = 3).
+
+   Notes:
+   - Returns values < 0 or > 1 if `target` is outside the specified range.
+   - Equivalent to normalized interpolation: `(target - min) / (max - min)`.
+   - Useful for scaling values to a unit range (0–1) for comparisons, gradients, or progress indicators.
+
+   Example:
+   PCT_POSITION(7, 10, 0) → 0.7
+*/
+
+PCT_POSITION = LAMBDA(target, max, min, [prec],
+    LET(
+        precision, IF(OR(ISOMITTED(prec), prec < 0), 3, prec),
+        position, (target - min) / (max - min),
+        result, ROUND(position, precision),
+        result
+    )
+);
+
+
+/* LIST_DIVISORS:
+   Purpose: Returns the full list of positive integer divisors (factors) of the input number.
+   Returns: A vertical array, horizontal array, or array constant string depending on mode.
+
+   Parameters:
+   - input (required): The number to evaluate for divisors.
+   - mode (optional): Output mode selector (default = 0)
+     - 0 → vertical spill (default)
+     - 1 → horizontal spill (transposed)
+     - 2 → array constant string (e.g., "{1, 2, 4, 8}")
+
+   Notes:
+   - Input must be a positive integer.
+   - Results are sorted in ascending order.
+   - Mode 2 is useful for embedding in formulas that accept array constants.
+
+   Example:
+   LIST_DIVISORS(12) → {1; 2; 3; 4; 6; 12}
+   LIST_DIVISORS(12, 1) → {1, 2, 3, 4, 6, 12}
+   LIST_DIVISORS(12, 2) → "{1, 2, 3, 4, 6, 12}"
+*/
+
+LIST_DIVISORS = LAMBDA(input, [mode],
+    LET(
+        output_mode, IF(ISOMITTED(mode) + (mode < 0) + (mode > 2), 0, mode),
+        divisors, SORT(
+            FILTER(
+                SEQUENCE(input),             /* Generate 1 to input */
+                MOD(input, SEQUENCE(input)) = 0   /* Keep only values that divide input evenly */
+            )
+        ),
+        output, SWITCH(
+            output_mode,
+            0, divisors,                                  /* Vertical array (default) */
+            1, TRANSPOSE(divisors),                       /* Horizontal array */
+            2, "{" & TEXTJOIN(", ", , divisors) & "}"     /* Array constant string */
+        ),
+        output
+    )
+);
+
+
+/* METALLIC_MEAN:
+   Purpose: Calculates a generalized metallic mean (e.g., golden, silver, bronze ratios).
+   Returns: A scalar decimal value, either the mean or its reciprocal.
+
+   Parameters:
+   - input (required): The metallic order to evaluate (e.g., 1 = golden, 2 = silver, 3 = bronze, etc.)
+   - type (optional): 0 = return mean (default), 1 = return reciprocal of the mean.
+   - precision (optional): Number of decimal places to round result (default = 3).
+
+   Notes:
+   - Metallic means are defined by the formula: Mₙ = (n + √(n² + 4)) / 2
+   - This implementation uses a rearranged equivalent form.
+   - Reciprocals are included for use in proportion-based applications.
+
+   Example:
+   METALLIC_MEAN(1) → 1.618 (Golden Ratio)
+   METALLIC_MEAN(3) → 2.303 (Bronze Ratio)
+   METALLIC_MEAN(5, 1) → 0.341 (Reciprocal of 5th Metallic Mean)
+*/
+
+METALLIC_MEAN = LAMBDA(order, [return_type], [precision],
+    LET(
+        return_type, IF(OR(ISOMITTED(return_type), return_type < 0, return_type > 1), 0, return_type),
+        precision, IF(ISOMITTED(precision), 3, precision),
+        n, TRUNC(order),  /* Ensure input is treated as integer metallic index */
+        mean, SQRT(1 + (n^2 / 4)) + (n / 2),  /* Rearranged form of (n + √(n² + 4)) / 2 */
+        result, SWITCH(return_type,
+            0, mean,
+            1, 1 / mean
+        ),
+        ROUND(result, precision)
+    )
+);
+
+
+/* PCT_RESOLVE:
+   Purpose: Solves for any one of the values in a percentage relationship:
+     - low (start), high (end), percent (as decimal), or target (interpolated value).
+
+   Returns: A single decimal number (rounded)
+
+   Parameters:
+   - low (required): Starting or minimum value
+   - high (required): Ending or maximum value
+   - percent (required): Percentage between low and high, expressed as a **decimal** (e.g., 0.25 for 25%)
+   - mode (optional): Determines which value to solve for
+     - 0 = solve for percent, given a target
+     - 1 = solve for target, given percent
+     - 2 = solve for low, given percent and high and target
+     - 3 = solve for high, given percent and low and target
+   - precision (optional): Rounding precision; default is 3
+
+   Notes:
+   - Percentage must be expressed as a decimal (e.g., 0.5 = 50%)
+   - Inputs low, high, and percent should be ordered consistently
+   - Handles both forward and inverse interpolation
+
+   Example:
+   PCT_RESOLVE(40, 100, 0.75, 1) → 85
+*/
+
+PCT_RESOLVE = LAMBDA(low, high, percent, [mode], [precision],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode < 0, mode > 3), 0, mode),
+        precision, IF(OR(ISOMITTED(precision), precision < 0), 3, precision),
+
+        target, low + (high - low) * percent,
+        pct, (percent - low) / (high - low),
+        newLow, high - ((high - low) * percent),
+        newHigh, ((percent - low) / percent) + low,
+
+        output, SWITCH(
+            mode,
+            0, ROUND(pct, precision),      // Find percent
+            1, ROUND(target, precision),   // Find interpolated target
+            2, ROUND(newLow, precision),   // Find low, given high and percent
+            3, ROUND(newHigh, precision),  // Find high, given low and percent
+            "#MODE?"
+        ),
+        output
+    )
+);
+
+
+/* RECIP:
+   Purpose: Returns the reciprocal (multiplicative inverse) of a number.
+   Returns: A single decimal value: 1 / input
+
+   Parameters:
+   - input (required): Any nonzero number
+
+   Notes:
+   - Returns #DIV/0! if input is zero
+   - Useful for flipping fractions or converting rates (e.g., Hz ↔ seconds)
+
+   Example:
+   RECIP(4) → 0.25
+*/
+
+RECIP = LAMBDA(input, 1 / input);
+
+/* FORMAT_AS_FRACTION:
+   Purpose: Converts a decimal number into a simplified fractional string.
+   Returns: A text value in the form "numerator/denominator".
+
+   Parameters:
+   - input (required): The decimal number to format (e.g., 0.625).
+   - denom (optional): The denominator base to use (default is 64). Determines the granularity of the approximation.
+
+   Notes:
+   - The fraction is automatically reduced to lowest terms.
+   - If the resulting numerator is 0, returns "#NONE!".
+   - Designed for display purposes—especially in measurement formatting or user-facing outputs.
+   - Does not retain whole number portion if input > 1 (consider pairing with a mixed fraction formatter if needed).
+
+   Example:
+   FORMAT_AS_FRACTION(0.625) → "5/8"
+   FORMAT_AS_FRACTION(0.75, 16) → "12/16"
+*/
+
+FORMAT_AS_FRACTION = LAMBDA(input, [denom],
+    LET(
+        base_denom, IF(ISOMITTED(denom), 64, TRUNC(denom)),  /* Default denominator if not provided */
+        raw_numer, TRUNC(input * base_denom),                /* Unreduced numerator */
+        gcd, GCD(raw_numer, base_denom),                     /* Greatest common divisor */
+        numer_final, raw_numer / gcd,                        /* Reduced numerator */
+        denom_final, base_denom / gcd,                       /* Reduced denominator */
+        output, IF(numer_final = 0,
+            "#NONE!",                                        /* Catch zero result explicitly */
+            TEXT(numer_final, "0") & "/" & TEXT(denom_final, "0")
+        ),
+        output
+    )
+);
+
+
+/* CALCULATE_ECCENTRICITY:
+   Purpose: Computes the eccentricity of an ellipse given its two axes.
+   Returns: A decimal value between 0 and 1 representing the ellipse's eccentricity.
+
+   Parameters:
+   - major (required): The length of the ellipse's major axis.
+   - minor (required): The length of the ellipse's minor axis.
+
+   Notes:
+   - The function internally identifies which input is longer to ensure proper calculation.
+   - Eccentricity (e) is defined as: e = √(1 - (b² / a²)), where a ≥ b.
+   - A result of 0 indicates a perfect circle; values approaching 1 indicate high elongation.
+   - Robust to input order—does not require the user to pre-sort axis lengths.
+   - Uses internal reordering logic to assign major/minor axes before calculating.
+
+   Example:
+   CALCULATE_ECCENTRICITY(10, 6) → 0.8
+*/
+
+CALCULATE_ECCENTRICITY = LAMBDA(major, minor,
+    LET(
+        a, IF(major < minor, minor, major),  // Ensure 'a' is the larger axis
+        b, IF(a = minor, major, minor),      // Assign 'b' to the smaller axis
+        ecc, SQRT(1 - (b / a) ^ 2),          // Apply eccentricity formula
+        ecc
+    )
+);
+
+
+/* CALCULATE_SEMI_MINOR_AXIS:
+   Purpose: Calculates the semi-minor axis (b) of an ellipse, given the semi-major axis (a) and eccentricity (e).
+   Returns: A positive decimal value representing the semi-minor axis.
+
+   Parameters:
+   - major (required): The semi-major axis length (a), must be positive.
+   - eccentricity (required): The eccentricity of the ellipse (e), where 0 ≤ e < 1.
+
+   Notes:
+   - Uses the formula: b = a * √(1 - e²)
+   - Eccentricity values of 0 yield a circular ellipse (b = a); values close to 1 yield a highly elongated ellipse.
+   - Input assumes values are valid (i.e., e < 1, a > 0). No internal error trapping is applied.
+
+   Example:
+   CALCULATE_SEMI_MINOR_AXIS(10, 0.8) → 6
+*/
+
+CALCULATE_SEMI_MINOR_AXIS = LAMBDA(major, eccentricity,
+    major * SQRT(1 - POWER(eccentricity, 2))  // Apply the semi-minor axis formula
+);
+
+/* ELLIPSE_ATTRIBUTES_FROM_AE:
+   Purpose: Returns a full suite of ellipse metrics given the semi-major axis (`a`) and eccentricity (`e`)
+   Returns: A two-column array with attribute labels and their corresponding numeric values
+
+   Parameters:
+   - a (required): The semi-major axis length of the ellipse
+   - e (required): The eccentricity of the ellipse (unitless, 0 ≤ e < 1)
+   - precision (optional): Number of decimal places to round output to (default = 3)
+
+   Notes:
+   - This function derives 17 key ellipse attributes, including semi-minor axis, apoapsis, periapsis, directrix, and perimeter
+   - Input `a` must be positive; input `e` must be between 0 (circle) and just under 1 (parabolic limit)
+   - Assumes elliptical shape in orbital context or geometric modeling
+   - Outputs are returned as a 2-column array with labels and values, useful for display or export
+
+   Example:
+   ELLIPSE_ATTRIBUTES_FROM_AE(100, 0.5, 2)
+*/
+
+ELLIPSE_ATTRIBUTES_FROM_AE = LAMBDA(a, e, [precision],
+    LET(
+        precision, IF(ISOMITTED(precision), 3, precision),
+
+        // Human-readable labels for output
+        labels, {
+            "semi-major axis (a)->";
+            "semi-minor axis (b)";
+            "linear eccentricity (c)";
+            "apoapsis (d)";
+            "eccentricity (e)->";
+            "flattening (f)";
+            "periapsis (g)";
+            "principal axis (h)";
+            "major axis (i)";
+            "minor axis (j)";
+            "semi-latus rectum (l)";
+            "directrix (m)";
+            "focal parameter (n)";
+            "perimeter (p)~";
+            "latus rectum (q):";
+            "ratio of apsides (r = d / g):";
+            "s = n - g:"
+        },
+
+        // Ellipse metrics
+        b, a * SQRT(1 - e ^ 2),                  // Semi-minor axis
+        c, SQRT(a ^ 2 - b ^ 2),                  // Linear eccentricity
+        d, a * (1 + e),                          // Apoapsis
+        f, (a - b) / a,                          // Flattening
+        g, a * (1 - e),                          // Periapsis
+        h, 2 * a * e,                            // Principal axis length
+        i, 2 * a,                                // Full major axis
+        j, 2 * b,                                // Full minor axis
+        l, b ^ 2 / a,                            // Semi-latus rectum
+        m, a / e,                                // Directrix
+        n, b ^ 2 / c,                            // Focal parameter
+        h_ram, ((a - b) / (a + b)) ^ 2,          // Helper for following perimeter calculation
+        p, PI() * (a + b) * (1 + (3 * h_ram) / (10 + SQRT(4 - 3 * h_ram))),  // Perimeter (Ramanujan approx.)
+        q, j ^ 2 / i,                            // Latus rectum
+        s, n - g,                                // Focal offset from periapsis
+        t, (1 - e) / (1 + e),                    // Apsidal ratio (inverted)
+        r, (1 + e) / (1 - e),                    // Ratio of apsides
+
+        // Create a flat, comma-delimited string of values for parsing
+        attribs, TEXTJOIN(",", , a, b, c, d, e, f, g, h, i, j, l, m, n, p, q, r, s),
+
+        // Formatting for decimal precision
+        fmt, "0." & REPT("#", precision),
+
+        // Convert string to vertical numeric array
+        values, TRANSPOSE(VALUE(TEXT(TEXTSPLIT(attribs, ","), fmt))),
+
+        // Final labeled output: 2-column array of labels and values
+        CHOOSE({1, 2}, labels, values)
+    )
+);
+
+
+/* ELLIPSE_ATTRIBUTES_FROM_AXES:
+   Purpose:
+   Calculates 17 key geometric and orbital parameters of an ellipse given the semi-major and semi-minor axes.
+   Returns a 2-column array with labels and corresponding computed values.
+
+   Parameters:
+   - a (required): Semi-major axis (must be ≥ b; if not, the function assumes it is and uses values accordingly)
+   - b (required): Semi-minor axis (≤ a)
+   - precision (optional): Number of decimal places to round outputs (default = 3)
+
+   Notes:
+   - The function assumes a ≥ b but does not internally reorder them—pass inputs appropriately.
+   - Uses Ramanujan's second approximation to estimate perimeter for improved accuracy.
+   - Attributes include apoapsis, periapsis, linear eccentricity, flattening, latus rectum, focal distance, and more.
+   - The tilde on "perimeter (p)~" indicates it's an approximation.
+   - Outputs are ideal for orbital analysis, shape diagnostics, or user display.
+
+   Example:
+   ELLIPSE_ATTRIBUTES_FROM_AXES(10, 8) returns an array with 17 derived ellipse metrics.
+*/
+
+ELLIPSE_ATTRIBUTES_FROM_AXES = LAMBDA(a, b, [precision],
+    LET(
+        precision, IF(ISOMITTED(precision), 3, precision),
+
+        // Label set for display; includes symbolic hints and reference to formulas where relevant
+        labels, {
+            "semi-major axis (a)->";
+            "semi-minor axis (b)->";
+            "linear eccentricity (c)";
+            "apoapsis (d)";
+            "eccentricity (e)";
+            "flattening (f)";
+            "periapsis (g)";
+            "principal axis (h)";
+            "major axis (i)";
+            "minor axis (j)";
+            "semi-latus rectum (l)";
+            "directrix (m)";
+            "focal parameter (n)";
+            "perimeter (p)~";
+            "latus rectum (q):";
+            "ratio of apsides (r = d / g):";
+            "s = n - g:"
+        },
+
+        // Derived metrics
+        e, SQRT(1 - (b ^ 2 / a ^ 2)),              // Eccentricity
+        c, SQRT(a ^ 2 - b ^ 2),                    // Linear eccentricity
+        d, a * (1 + e),                            // Apoapsis (farthest orbital point)
+        f, (a - b) / a,                            // Flattening ratio
+        g, a * (1 - e),                            // Periapsis (nearest orbital point)
+        h, 2 * a * e,                              // Principal axis length (2ae)
+        i, 2 * a,                                  // Full major axis length
+        j, 2 * b,                                  // Full minor axis length
+        l, b ^ 2 / a,                              // Semi-latus rectum
+        m, a / e,                                  // Directrix (distance from focus)
+        n, b ^ 2 / c,                              // Focal parameter
+        h_ram, ((a - b) / (a + b)) ^ 2,            // Helper term for Ramanujan perimeter
+        p, PI() * (a + b) * (1 + (3 * h_ram) /     // Ramanujan’s 2nd perimeter approximation
+            (10 + SQRT(4 - 3 * h_ram))),
+        q, j ^ 2 / i,                              // Full latus rectum
+        s, n - g,                                  // Focal param minus periapsis
+        t, (1 - e) / (1 + e),                      // Inverse apsidal ratio (optional: commented out)
+        r, (1 + e) / (1 - e),                      // Ratio of apsides
+
+        // Collect raw values into comma-delimited string
+        attribs, TEXTJOIN(",", , a, b, c, d, e, f, g, h, i, j, l, m, n, p, q, r, s),
+
+        // Decimal formatting
+        fmt, "0." & REPT("#", precision),
+
+        // Apply formatting and transpose to match label format
+        values, TRANSPOSE(VALUE(TEXT(TEXTSPLIT(attribs, ","), fmt))),
+
+        // Return label/value pairing
+        CHOOSE({1, 2}, labels, values)
+    )
+);
+
+
+/* SPHERE_RAD_FROM_VOL:
+   Purpose:
+   Calculates the radius of a sphere given its volume using the inverse volume formula.
+
+   Returns:
+   A single numeric value representing the sphere's radius, rounded to the specified precision.
+
+   Parameters:
+   - v (required): Volume of the sphere (must be a positive number)
+   - prec (optional): Number of decimal places to round the result to (default = 3)
+
+   Notes:
+   - Uses the inverse of the volume formula: \( r = \sqrt[3]{\frac{3V}{4\pi}} \)
+   - If precision is omitted or negative, defaults to 3 decimal places.
+   - Assumes volume is valid (non-negative); no error handling for invalid input.
+
+   Example:
+   SPHERE_RAD_FROM_VOL(113.097) → 3.000
+*/
+
+SPHERE_RAD_FROM_VOL = LAMBDA(v, [prec],
+    LET(
+        // Default precision handling: fallback to 3 if omitted or invalid
+        prec, IF(ISOMITTED(prec) + (prec < 0), 3, prec),
+
+        // Inverse of sphere volume formula: r = ∛((3v)/(4π))
+        radius, ROUND(POWER((v * 3) / (4 * PI()), 1 / 3), prec),
+
+        radius
+    )
+);
+
+
+/* SPHERE_VOL_FROM_RAD:
+   Purpose:
+   Calculates the volume of a sphere given its radius.
+
+   Returns:
+   A single numeric value representing the sphere's volume, rounded to the specified precision.
+
+   Parameters:
+   - r (required): Radius of the sphere (must be a non-negative number)
+   - prec (optional): Number of decimal places to round the result to (default = 3)
+
+   Notes:
+   - Uses the standard formula: \( V = \frac{4}{3} \pi r^3 \)
+   - If precision is omitted or negative, defaults to 3 decimal places.
+   - Assumes input radius is valid (no internal error checking for negatives).
+
+   Example:
+   SPHERE_VOL_FROM_RAD(3) → 113.097
+*/
+
+SPHERE_VOL_FROM_RAD = LAMBDA(r, [prec],
+    LET(
+        // Handle missing or invalid precision input
+        prec, IF(ISOMITTED(prec) + (prec < 0), 3, prec),
+
+        // Volume formula: V = (4/3) * π * r³
+        v, (4 / 3) * PI() * r ^ 3,
+
+        ROUND(v, prec)
+    )
+);
+
+/* SUM_RANGE:
+   Purpose: Calculates the sum of an arithmetic series, either by specifying a full range
+            (lower and upper bounds and optional increment) or just a single upper bound
+            for a 1-to-n sum.
+
+   Returns: A single number representing the arithmetic sum.
+
+   Parameters:
+   - lbound (required): Lower bound of the sequence. If `ubound` is omitted, treated as 1.
+   - ubound (optional): Upper bound of the sequence. If omitted, `lbound` is treated as the upper bound and 1 is used as the lower bound.
+   - increment (optional): The amount to increase each step by (default = 1).
+
+   Notes:
+   - Handles both ascending and descending sequences.
+   - Can be used as a direct replacement for SERIES_SUM and SUM_INTEGERS with `increment = 1`.
+
+   Example:
+   SUM_RANGE(1, 10) → 55
+   SUM_RANGE(3, 15, 3) → 45 (3 + 6 + 9 + 12 + 15)
+   SUM_RANGE(10) → 55 (same as SUM_RANGE(1, 10))
+*/
+
+SUM_RANGE = LAMBDA(lbound, [ubound], [increment],
+    LET(
+        ubound_internal, IF(ISOMITTED(ubound), lbound, ubound),
+        lbound_internal, IF(ISOMITTED(ubound), 1, lbound),
+        step, IF(ISOMITTED(increment), 1, increment),
+        length, TRUNC((ubound_internal - lbound_internal) / step) + 1,
+        total, (length / 2) * ((2 * lbound_internal) + ((length - 1) * step)),
+        total
+    )
+);
+
+/* SUM_BETWEEN_BOUNDS:
+   Purpose:
+   Returns the sum of an arithmetic sequence starting from a lower bound and increasing by a fixed increment up to an upper bound.
+
+   Returns:
+   A scalar value representing the total of all valid terms in the range.
+
+   Parameters:
+   - lbound (required): The starting value of the sequence.
+   - ubound (optional): The maximum value the sequence may reach (default = lbound, i.e., single-term sum).
+   - increment (optional): The step size between terms (default = 1).
+
+   Notes:
+   - If only lbound is provided, returns that value (single term).
+   - If increment is omitted, defaults to 1.
+   - Uses the arithmetic series sum formula to avoid iteration.
+   - Result reflects only full steps that do not exceed the upper bound.
+
+   Example:
+   SUM_BETWEEN_BOUNDS(4, 20, 3) → 69
+   (Sums: 4 + 7 + 10 + 13 + 16 + 19)
+*/
+
+SUM_BETWEEN_BOUNDS = LAMBDA(lbound, [ubound], [increment],
+    LET(
+        // Default to single term if ubound is omitted
+        u_bound, IF(ISOMITTED(ubound), lbound, ubound),
+
+        // Default lbound to 1 if only one argument was passed (for symmetry)
+        lbound, IF(ISOMITTED(ubound), 1, lbound),
+
+        // Default increment to 1 if omitted
+        increment, IF(ISOMITTED(increment), 1, increment),
+
+        // Calculate the number of terms in the sequence that do not exceed u_bound
+        length, TRUNC((u_bound - lbound) / increment) + 1,
+
+        // Use arithmetic series sum formula
+        total, (length / 2) * ((2 * lbound) + ((length - 1) * increment)),
+
+        total
+    )
+);
+
+
+
+// FIBSEQ = LAMBDA(n,
+//     IF(n < 1,
+//         {},
+//         IF(n = 1,
+//             {0},
+//             LET(
+//                 fibSeq, REDUCE({0, 1}, SEQUENCE(n - 2),
+//                     LAMBDA(acc, i,
+//                         LET(
+//                             next, INDEX(acc, i) + INDEX(acc, i + 1),
+//                             HSTACK(acc, next)
+//                         )
+//                     )
+//                 ),
+//                 fibSeq
+//             )
+//         )
+//     )
+// );
+
+/* METALS_LIST:
+   Purpose:
+   Generates a list of metallic means up to the specified index.
+
+   Returns:
+   A vertical array of real numbers representing metallic means, rounded to the desired precision.
+
+   Parameters:
+   - max (optional): Highest index of metallic mean to calculate (default = 9).
+       For example, 1 = golden mean, 2 = silver, 3 = bronze, etc.
+   - precision (optional): Decimal precision for rounding results (default = 5).
+
+   Notes:
+   - Metallic means are defined as: √(1 + (n² / 4)) + n / 2
+   - Used in number theory, aesthetics, architecture, sacred geometry, and noetic modeling.
+   - The golden mean (index 1) is the most well-known member of this family.
+   - This function generates the sequence as a vertical array (column vector).
+
+   Example:
+   METALS_LIST(3) → {1.61803; 2.41421; 3.30278}
+*/
+
+METALS_LIST = LAMBDA([max], [precision],
+    LET(
+        // Set defaults for optional parameters
+        max, IF(ISOMITTED(max), 9, max),
+        precision, IF(ISOMITTED(precision), 5, precision),
+
+        // Build number format pattern (e.g., "#.00000" for 5 digits)
+        prec, "#." & REPT("0", precision),
+
+        // Generate sequence 1 to max (metallic indices)
+        list, SEQUENCE(max, , 1),
+
+        // Calculate metallic mean for each index, round to precision
+        output, VALUE(
+            TEXT(
+                BYROW(
+                    list,
+                    LAMBDA(x,
+                        SQRT(1 + (x ^ 2) / 4) + (x / 2)  // Metallic mean formula
+                    )
+                ),
+                prec
+            )
+        ),
+
+        output
+    )
+);
+
+
+/* FRAC:
+   Purpose:
+   Returns the fractional part of a number.
+
+   Returns:
+   A scalar decimal between 0 and 1 (or -1 and 0 if signed mode is selected).
+
+   Parameters:
+   - input (required): The number from which to extract the fractional part.
+   - mode (optional): Output mode (default = 0)
+       - 0: Always return positive fractional part (default)
+       - 1: Preserve the sign of the input (e.g., -3.25 → -0.25)
+
+   Notes:
+   - Complements Excel’s QUOTIENT and TRUNC functions.
+   - Useful for isolating non-integer parts of values.
+   - Can distinguish whether a number is just under or just over an integer based on sign.
+
+   Example:
+   FRAC(-3.25) → 0.25  
+   FRAC(-3.25, 1) → -0.25
+*/
+
+FRAC = LAMBDA(input, [mode],
+    LET(
+        // Default mode to 0 if omitted or invalid
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+
+        // Compute fractional part by subtracting integer portion
+        frac_part, input - TRUNC(input),
+
+        // Return signed or absolute value depending on mode
+        IF(mode = 1, frac_part, ABS(frac_part))
+    )
+);
+
+
