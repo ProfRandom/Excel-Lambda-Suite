@@ -127,7 +127,7 @@ SUM_BETWEEN_BOUNDS(4, 20, 3) → 69
 
 For hands-on examples and live formula testing, see:
 
-** [`Summing Utils.xlsx`](Summing Utils.xlsx)  **
+** [`Summing Utils.xlsx`](Summing%20Utils.xlsx) **
 This file contains:
 - Input/output demos for each function in the suite
 - Sample scenarios with expected results
