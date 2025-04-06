@@ -1,0 +1,124 @@
+DECTIME = LAMBDA(input,[y],[d],[h],[m],[s],
+    LET(
+        y, N(y),
+        d, N(d),
+        h, N(h),
+        m, N(m),
+        s, N(s),
+        code, UPPER(IF(ISNUMBER(SEARCH(input, "YDHMS")), input, "S")),
+        result, SWITCH(
+            code,
+            "S", (y*31557600) + (d*86400) + (h*3600) + (m*60) + s,
+            "M", (y*525960) + (d*1440) + (h*60) + m + (s/60),
+            "H", (y*8766) + (d*24) + h + (m/60) + (s/3600),
+            "D", (y*365.25) + d + (h/24) + (m/1440) + (s/86400),
+            "Y", y + (d/365.25) + (h/8766) + (m/525960) + (s/31557600),
+            "Invalid Unit"
+        ),
+        result
+    )
+);
+
+DECTIMEF = LAMBDA(input,[y],[d],[h],[m],[s],
+    LET(
+        y, N(y),
+        d, N(d),
+        h, N(h),
+        m, N(m),
+        s, N(s),
+        code, UPPER(IF(ISNUMBER(SEARCH(input, "YDHMS")), input, "S")),
+        result, SWITCH(
+            code,
+            "S", (y*31557600) + (d*86400) + (h*3600) + (m*60) + s,
+            "M", (y*525960) + (d*1440) + (h*60) + m + (s/60),
+            "H", (y*8766) + (d*24) + h + (m/60) + (s/3600),
+            "D", (y*365.25) + d + (h/24) + (m/1440) + (s/86400),
+            "Y", y + (d/365.25) + (h/8766) + (m/525960) + (s/31557600),
+            "Invalid Unit"
+        ),
+        fixed(result,9)&LOWER(code)
+    )
+);
+
+EXPTIMET = LAMBDA(unit, value, [includeZero], [decimalPlaces],
+    LET(
+        includeZero, IF(ISOMITTED(includeZero), TRUE, includeZero),
+        decimalPlaces, IF(ISOMITTED(decimalPlaces), 3, decimalPlaces),
+        unit, UPPER(unit),
+        factor, SWITCH(unit, 
+            "Y", 31557600, 
+            "D", 86400, 
+            "H", 3600, 
+            "M", 60, 
+            "S", 1, 
+            NA()),
+        totalSeconds, value * factor,
+        y, INT(totalSeconds / 31557600),
+        d, INT(MOD(totalSeconds, 31557600) / 86400),
+        h, INT(MOD(totalSeconds, 86400) / 3600),
+        m, INT(MOD(totalSeconds, 3600) / 60),
+        s, (totalSeconds - trunc(totalSeconds)) * 60,
+
+        formattedY, y & "y",
+        formattedD, d & "d",
+        formattedH, h & "h",
+        formattedM, m & "m",
+        formattedS, int(s*10000)/10000 & "s",  // Pass rounded value directly (future-proofing!)
+
+        formatText, TEXTJOIN(" ", TRUE,
+            IF(includeZero + y > 0, formattedY, ""),
+            IF(includeZero + d > 0, formattedD, ""),
+            IF(includeZero + h > 0, formattedH, ""),
+            IF(includeZero + m > 0, formattedM, ""),
+            formattedS
+        ),
+
+        IFERROR(formatText, "Invalid Input")
+    )
+);
+
+
+EXPTIMEF = LAMBDA(unit, value,
+    LET(
+        factor, SWITCH(unit, 
+            "Y", 31557600, 
+            "D", 86400, 
+            "H", 3600, 
+            "M", 60, 
+            "S", 1, 
+            NA()),
+        totalSeconds, value * factor,
+
+        // Compute raw units
+        //rawS, totalSeconds - INT(totalSeconds / 60) * 60,
+        rawS, (totalSeconds - trunc(totalSeconds)) * 60,
+        totalMinutes, INT(totalSeconds / 60),
+        rawM, MOD(totalMinutes, 60),
+        totalHours, INT(totalMinutes / 60),
+        rawH, MOD(totalHours, 24),
+        totalDays, INT(totalHours / 24),
+        rawD, MOD(totalDays, 365.25),
+        rawY, INT(totalDays / 365.25),
+
+        // Handle carryover for minutes
+        carryH, IF(rawM >= 60, 1, 0),
+        m, IF(rawM >= 60, 0, rawM),
+
+        // Handle carryover for hours
+        carryD, IF(rawH + carryH >= 24, 1, 0),
+        h, IF(rawH + carryH >= 24, 0, rawH + carryH),
+
+        // Handle carryover for days
+        carryY, IF(rawD + carryD >= 365.25, 1, 0),
+        d, IF(rawD + carryD >= 365.25, 0, rawD + carryD),
+        y, rawY + carryY,
+
+        // Format output
+        TEXT(y, "00") & ":" & TEXT(d, "000") & ":" & TEXT(h, "00") & ":" & TEXT(m, "00") & ":" & int(rawS*10000)/10000
+        //rawS
+    )
+);
+
+
+
+

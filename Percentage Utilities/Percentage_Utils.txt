@@ -1,0 +1,213 @@
+/* PCT_OF:
+   Purpose:
+   Calculates a given percentage of a value.
+
+   Returns:
+   A scalar value equal to the percentage of the input.
+
+   Parameters:
+   - value (required): The base amount (e.g., total or reference value)
+   - percent (required): The percent to apply. Can be:
+       - A decimal (e.g., 0.25 for 25%)
+       - A whole number (e.g., 25, which will be treated as 0.25)
+   - precision (optional): Number of decimal places to round the result (default = 3)
+
+   Notes:
+   - If `percent` > 1, it's treated as a whole-number percent and divided by 100.
+   - Due to this, inputs like 0.333 and 33 will not return exactly the same result.
+   - Use to compute percentage-based values with intuitive input handling.
+
+   Example:
+   PCT_OF(80, 25) → 20  
+   PCT_OF(80, 0.25) → 20  
+   PCT_OF(100, 0.333) → 33.3  
+   PCT_OF(100, 33) → 33
+*/
+
+PCT_OF = LAMBDA(value, percent, [precision],
+    LET(
+        precision, IF(ISOMITTED(precision) + (precision < 0), 3, precision),
+        pct_adj, IF(ABS(percent) > 1, percent / 100, percent),
+        ROUND(value * pct_adj, precision)
+    )
+);
+
+
+
+/* PCT_POSITION:
+   Purpose: Calculates the relative position of a target value within a range.
+   Returns: A decimal value between 0 and 1 (or outside that range if target exceeds bounds).
+
+   Parameters:
+   - target (required): The value whose position is being evaluated.
+   - max (required): The upper bound of the range.
+   - min (required): The lower bound of the range.
+   - prec (optional): Number of decimal places to round the result (default = 3).
+
+   Notes:
+   - Returns values < 0 or > 1 if `target` is outside the specified range.
+   - Equivalent to normalized interpolation: `(target - min) / (max - min)`.
+   - Useful for scaling values to a unit range (0–1) for comparisons, gradients, or progress indicators.
+
+   Example:
+   PCT_POSITION(7, 10, 0) → 0.7
+*/
+
+PCT_POSITION = LAMBDA(min, max, target, [prec],
+    LET(
+        precision, IF(OR(ISOMITTED(prec), prec < 0), 3, prec),
+        position, (target - min) / (max - min),
+        result, ROUND(position, precision),
+        result
+    )
+);
+
+/* PCT_INTERPOLATE:
+   Purpose: Calculates a value within or beyond a range using interpolation.
+   Returns: The interpolant at a given percentage between lbound and ubound.
+
+   Parameters:
+   - lbound (required): The lower bound of the range.
+   - ubound (required): The upper bound of the range.
+   - percentage (required): Decimal representing position between bounds (e.g., 0.25 = 25%)
+   - precision (optional): Decimal places to round result (default = 3)
+
+   Notes:
+   - Accepts values < 0 or > 1 for extrapolation.
+*/
+
+PCT_INTERPOLATE = LAMBDA(lbound, ubound, percentage, [precision],
+    LET(
+        precision, IF(ISOMITTED(precision)+(precision<0), 3, precision),
+        result, ROUND(lbound + (ubound - lbound) * percentage, precision),
+        result
+    )
+);
+
+/* PCT_LBOUND:
+   Purpose: Solves for the lower bound given interpolant, upper bound, and percentage.
+   Returns: A decimal representing lbound.
+
+   Parameters:
+   - interpolant (required): Known value somewhere along the range.
+   - ubound (required): The upper bound of the range.
+   - percentage (required): Relative position from lbound to ubound.
+   - precision (optional): Decimal places to round result (default = 3)
+
+   Notes:
+   - Assumes linear relationship between bounds.
+*/
+
+PCT_LBOUND = LAMBDA(interpolant, ubound, percentage, [precision],
+    LET(
+        precision, IF(ISOMITTED(precision)+(precision<0), 3, precision),
+        result, ROUND((interpolant - (percentage * ubound))/(1 - percentage),precision),
+        result
+    )
+);
+
+/* PCT_UBOUND:
+   Purpose: Solves for the upper bound given lbound, interpolant, and percentage.
+   Returns: A decimal representing ubound.
+
+   Parameters:
+   - lbound (required): The lower bound of the range.
+   - interpolant (required): Known value within the range.
+   - percentage (required): Relative position from lbound to ubound.
+   - precision (optional): Decimal places to round result (default = 3)
+
+   Notes:
+   - Works bidirectionally for extrapolation if percentage < 0 or > 1.
+*/
+
+PCT_UBOUND = LAMBDA(lbound, interpolant, percentage, [precision],
+    LET(
+        precision, IF(ISOMITTED(precision)+(precision<0), 3, precision),
+        result, ROUND((interpolant - lbound) / percentage + lbound, precision),
+        result
+    )
+);
+
+/* PCT_REMAP:
+   Purpose: Translates a value from one numerical range to its equivalent position in another range 
+            by preserving its relative percentage.
+
+   Returns: A decimal value representing the remapped interpolant, rounded to the specified precision.
+
+   Parameters:
+   - init_lbound (required): Lower bound of the original range.
+   - init_ubound (required): Upper bound of the original range.
+   - init_interpolant (required): Value within the original range to be remapped.
+   - fin_lbound (required): Lower bound of the target range.
+   - fin_ubound (required): Upper bound of the target range.
+   - precision (optional): Number of decimal places to round to (default = 3).
+
+   Notes:
+   - Performs normalized interpolation: maps a value from one range to its proportional position in another.
+   - Useful in scaling, value remapping, UI normalization, or layered coordinate transformations.
+   - Does not clamp output — extrapolated values are allowed if `init_interpolant` falls outside the initial range.
+
+   Example:
+   PCT_REMAP(0, 100, 75, 1, 5) → 4.0
+   (75% of the range [0–100] corresponds to 75% of the range [1–5])
+*/
+
+PCT_REMAP = LAMBDA(init_lbound, init_ubound, init_interpolant, fin_lbound, fin_ubound, [precision],
+
+LET(
+    precision, IF(ISOMITTED(precision)+(precision<0), 3, precision),
+    trans_pct, (init_interpolant - init_lbound)/(init_ubound - init_lbound),
+    fin_interpolant, fin_lbound + (fin_ubound - fin_lbound) * trans_pct,
+    round(fin_interpolant, precision)
+)
+);
+
+/* PCT_REMAP_ARRAY:
+   Purpose:
+   Remaps a list of interpolated values from one numeric range to another,
+   preserving each value's relative percentage position.
+
+   Returns:
+   A vertical array of remapped values corresponding to the input list.
+
+   Parameters:
+   - init_lbound (required): Lower bound of the original range.
+   - init_ubound (required): Upper bound of the original range.
+   - interpolants (required): A vertical array (column) of values to remap.
+   - fin_lbound (required): Lower bound of the new range.
+   - fin_ubound (required): Upper bound of the new range.
+   - precision (optional): Decimal precision for rounding (default = 3).
+
+   Notes:
+   - Each input value is normalized to a percentage position in the initial range,
+     then scaled into the final range using linear interpolation.
+   - Useful for rescaling data sets, visual gradients, and statistical normalization.
+   - Accepts reversed ranges in either the initial or final domain.
+   - Values outside the original bounds will extrapolate proportionally.
+
+   Example:
+   PCT_REMAP_ARRAY(6000, 7350, A1:A10, 9, 0) → vertical array of remapped values
+
+   Related:
+   - PCT_REMAP (for scalar remapping)
+   - PCT_POSITION, PCT_INTERPOLATE (for modular use)
+*/
+
+
+PCT_REMAP_ARRAY = LAMBDA(
+    input_range, init_lbound, init_ubound, fin_lbound, fin_ubound, [precision],
+    LET(
+        precision, IF(ISOMITTED(precision) + (precision < 0), 3, precision),
+        BYROW(
+            input_range,
+            LAMBDA(x,
+                LET(
+                    trans_pct, (x - init_lbound) / (init_ubound - init_lbound),
+                    fin_interp, fin_lbound + (fin_ubound - fin_lbound) * trans_pct,
+                    ROUND(fin_interp, precision)
+                )
+            )
+        )
+    )
+);
+

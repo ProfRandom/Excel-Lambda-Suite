@@ -1,0 +1,83 @@
+DATE_FROMTEXT = LAMBDA(input,
+    LET(
+        suffix, UPPER(
+            IFS(
+                ISNUMBER(SEARCH("B", input)),
+                MID(input, SEARCH("B", input), LEN(input)),
+                ISNUMBER(SEARCH("C", input)),
+                MID(input, SEARCH("C", input), LEN(input)),
+                ISNUMBER(SEARCH("A", input)),
+                MID(input, SEARCH("A", input), LEN(input)),
+                ISNUMBER(SEARCH("H", input)),
+                MID(input, SEARCH("H", input), LEN(input))
+            )
+        ),
+        SuffCheck, SWITCH(suffix, "BC", 1, "BCE", 1, "AD", 2, "CE", 2, "BP", 3, "HE", 4, "BHE", 5),
+        value, VALUE(TEXTBEFORE(input, suffix)),
+        BPcheck, 1950 - value,
+        output, SWITCH(
+            TRUE(),
+            AND(SuffCheck = 1, value = 0), "#VALUE!",
+            AND(SuffCheck = 1, value > 0), 0 - value,
+            AND(SuffCheck = 2, value = 0), "#VALUE!",
+            AND(SuffCheck = 2, value <> 0), value,
+            AND(SuffCheck = 3, value = 0), 1950 - value - IF(value < 0, 1, 0),
+            AND(SuffCheck = 3, value > 0), 1950 - value,
+            AND(SuffCheck = 4, value > 0), -10000 + value,
+            AND(SuffCheck = 5, value > 0), -10000 - value
+        ),
+        output
+    )
+);
+
+DATE_TOTEXT = LAMBDA(input, [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 3), 0, mode),
+        output, SWITCH(
+            mode,
+            0, IFS(
+                input < 0,
+                TEXT(ABS(input), "0") & IF(input <> 0, " BCE", ""),
+                input = 0,
+                "#VALUE!",
+                TRUE,
+                TEXT(ABS(input), "0") & " CE"
+            ),
+            1, IFS(
+                input < 0,
+                TEXT(ABS(input), "0") & IF(input <> 0, " BC", ""),
+                input = 0,
+                "#VALUE!",
+                TRUE,
+                TEXT(ABS(input), "0") & " AD"
+            ),
+            2, TEXT(1950 - input, "0") & IF(input <> 0, " BP", ""),
+            3, TEXT(YEAR(TODAY()) - input, "0") & IF(input <> 0, " YA", "")
+        ),
+        output
+    )
+);
+
+
+DATE_TO_HE = LAMBDA(input, IF(input < 0, input + 10001, input + 10000));
+DATE_BPTOCE = LAMBDA(input, -input + 1950);
+DATE_CETOBP = LAMBDA(input, 1950 - input);
+
+SERIALTODATE = LAMBDA(serial, [fmt],
+    LET(
+        format, IF(ISOMITTED(fmt), "mm/dd/yyyy", fmt),
+        text_val, TEXT(serial, format),
+        text_val
+    )
+);
+
+
+DATE_THISWEEK = LAMBDA(dayNumber,
+    LET(
+        date, TODAY(),
+        weekday, WEEKDAY(date, 2),
+        mondayDate, IF(weekday = 7, date + 1, date - weekday + 1),
+        mondayDate + dayNumber - 1
+    )
+);
+

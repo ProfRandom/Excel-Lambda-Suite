@@ -1,0 +1,230 @@
+GETDIGITS = LAMBDA(input,
+    LET(
+        output, TEXTJOIN("", TRUE, IFERROR(--MID(input, ROW(INDIRECT("1:" & LEN(input))), 1), "")),
+        return, IF(output = "", "#NONE!", output),
+        return
+    )
+);
+
+GETCHARS = LAMBDA(input,
+    LET(
+        output, TEXTJOIN(
+            "",
+            TRUE,
+            IF(
+                ISERROR(--MID(input, ROW(INDIRECT("1:" & LEN(input))), 1)),
+                MID(input, ROW(INDIRECT("1:" & LEN(input))), 1),
+                ""
+            )
+        ),
+        return, IF(output = "", "#NONE!", output),
+        return
+    )
+);
+
+SPLITDIGITS = LAMBDA(input, [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+        stripped, SUBSTITUTE(input, ".", ""),
+        output, IFERROR(VALUE(MID(stripped, SEQUENCE(LEN(stripped)), 1)), "0"),
+        SWITCH(mode, 1, output, 0, TRANSPOSE(output), )
+    )
+);
+
+SPLITSTRING = LAMBDA(input, [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+        output, IF(
+            mode = 0,
+            TRANSPOSE(MID(input, SEQUENCE(LEN(input)), 1)),
+            MID(input, SEQUENCE(LEN(input)), 1)
+        ),
+        output
+    )
+    
+    REPEAT_TEXT = LAMBDA(inputRange, repeatCount,
+    MAKEARRAY(COUNTA(inputRange) * repeatCount, 1,
+        LAMBDA(row, col, INDEX(inputRange, CEILING(row / repeatCount, 1)))
+    )
+);
+
+SEQUENCE_REPEAT = LAMBDA(start, end, repeat,
+
+LET(
+   len, abs(start-end)+1,
+   list, sequence(len,,start,1),
+   arr, concat(byrow(list,lambda(x,rept(concat(x,","),repeat)))),
+   value(tocol(textsplit(left(arr,len(arr)-1),",")))
+    )
+);
+
+COPY_REVERSE = LAMBDA(range, [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+        listlen, IF(mode = 0, COUNTA(range), COUNTA(range) - 1),
+        reversed, INDEX(range, SEQUENCE(listlen, , listlen, -1)),
+        reversed
+    )
+);
+
+/* UNIQUECHARS
+Reduces text to a unique, sorted list of its consituent characters;
+strips spaces
+*/
+
+UNIQUECHARS = LAMBDA(input, [style], [mode],
+
+    LET(
+        mode, if((ISOMITTED(mode))+(mode<0)+(mode>2), 0, mode),
+        style, if((ISOMITTED(style))+(style<0)+(style>2), 0, style),
+        strip, SUBSTITUTE(input, " ", ""),
+        arr, mid(strip,sequence(len(strip)),1),
+        styled, switch(style,
+            0, arr,
+            1, lower(arr),
+            2, upper(arr)
+            ),
+        result, switch(mode,
+            0, concat(styled),
+            1, concat(unique(styled)),
+            2, concat(sort(unique(styled)))
+            ),
+        result
+    )
+);
+
+
+/* HASCAP:
+
+Returns TRUE if the LookupArray word contains a capital letter
+    anywhere other than the first letter
+    ELSE, returns FALSE
+*/
+
+HASCAP = LAMBDA(word,
+    LET(
+        count, LEN(word),
+        subword, RIGHT(word, count - 1),
+        letter, LEFT(subword, 1),
+        test, AND((CODE(letter) >= 65), (CODE(letter) <= 91)),
+        IF(((test = FALSE) * (LEN(subword) - 1 > 0)), HASCAP(subword), test)
+    )
+);
+
+
+TEXTBETWEEN = LAMBDA(input, delim1, [delim2], [includeDelims],
+    LET(
+        // Set default values for optional parameters
+        delim2, IF(ISOMITTED(delim2), delim1, delim2),
+        includeDelims, IF(ISOMITTED(includeDelims), FALSE, includeDelims),
+        
+        // Find the positions of the delimiters
+        startPos, FIND(delim1, input),
+        endPos, FIND(delim2, input, startPos + LEN(delim1)),
+        
+        // Extract the text between the delimiters
+        betweenText, MID(input, startPos + LEN(delim1), endPos - startPos - LEN(delim1)),
+        
+        // Optionally include the delimiters in the result
+        result, IF(
+            includeDelims,
+            delim1 & betweenText & delim2,
+            betweenText
+        ),
+        
+        // Handle cases where delimiters are not found
+        output, IFERROR(result, "#DELIM!"),
+        output
+    )
+);
+
+STRIP_CHARS = LAMBDA(input,
+
+// Keep as an example of recursive coding
+    IF(ISERROR(SEARCH("(", input)),
+        input,
+        LET(
+            first_find, SEARCH("(", input),
+            second_find, SEARCH(")", input),
+            new_string, LEFT(input, first_find - 1) & MID(input, second_find + 1, LEN(input)),
+            STRIP_CHARS(new_string)
+        )
+    )
+);
+
+
+FILTERWILD = LAMBDA(array, find, [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 2), 0, mode),
+        output, IFERROR(
+            SWITCH(
+                mode,
+                0, FILTER(array, ISNUMBER(SEARCH(find, array))),
+                2, FILTER(array, (BYROW(array, LAMBDA(x, XLOOKUP("*" & find, x, x, "", 2))) <> "")),
+                1, FILTER(array, (BYROW(array, LAMBDA(x, XLOOKUP(find & "*", x, x, "", 2))) <> ""))
+            ),
+            "None"
+        ),
+        output
+    )
+);
+
+
+FORMTEXT = LAMBDA(input, [mode],
+    LET(
+        recpt, FORMULATEXT(input),
+        mode, IF(OR(ISOMITTED(mode), mode > 3), 0, mode),
+        checkval, ISNUMBER(SEARCH("(", recpt)),
+        cell_name, SUBSTITUTE(CELL("address", input),"$",""),
+        list, IF(
+            NOT(checkval),
+            recpt,
+            TEXTSPLIT(recpt, ")")
+        ),
+        result, IF(
+            checkval,
+            BYCOL(
+                list,
+                LAMBDA(x, TEXTBEFORE(x, "(", , , , ""))
+            ),
+            list
+        ),
+        collected, TEXTJOIN(
+            "",
+            ,
+            INDEX(result, SEQUENCE(COUNTA(result)))
+        ),
+        parenthetical, TEXTAFTER(TEXTBEFORE(CONCAT(cell_name, ":= ", SUBSTITUTE(collected, "=", "")), "("), " "),
+        output, SWITCH(
+            mode,
+            0, collected,
+            1, CONCAT(cell_name, ":= ", SUBSTITUTE(collected, "=", "")),
+            2, CONCAT(cell_name, ":= ", SUBSTITUTE(recpt, "=", "")),
+            3, parenthetical
+        ),
+        output
+    )
+);
+
+FORMAT_AS_LIST = LAMBDA(range, [format], [style], [sort], [mode],
+    LET(
+        style, IF(OR(ISOMITTED(style), style > 1), 0, style),
+        format, IF(OR(ISOMITTED(format), format > 1), 0, format),
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+        sort, IF(OR(ISOMITTED(mode), sort > 1), 0, sort),
+        separator, IF(format = 0, ", ", "; "),
+        list, SWITCH(mode, 0, TOCOL(range, 3), 1, UNIQUE(TOCOL(range, 3))),
+        sorted, SWITCH(sort, 0, list, 1, SORT(list)),
+        output, SWITCH(style, 0, "{" & TEXTJOIN(separator, , sorted) & "}", 1, TEXTJOIN(separator, , sorted)),
+        output
+    )
+);
+
+REMOVE_BLANKS_LIST = LAMBDA(col, FILTER(col, col<>""));
+
+REMOVE_BLANKS_ARRAY = LAMBDA(tbl,
+  LET(
+    keep, BYROW(tbl, LAMBDA(r, SUM(LEN(TRIM(r)))>0)),
+    FILTER(tbl, keep)
+  )
+);
