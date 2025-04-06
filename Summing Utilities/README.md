@@ -117,3 +117,20 @@ SUM_BETWEEN_BOUNDS(4, 20, 3) → 69
 - Uses the closed-form arithmetic series formula—no iteration required.
 - Only includes full steps that do **not exceed** the upper bound.
 - Ideal for range-controlled summations with safe upper limits.
+
+---
+---
+
+---
+
+### 📊 Sample Workbook
+
+For hands-on examples and live formula testing, see:
+
+**`Summing Utils.xlsx`**  
+This file contains:
+- Input/output demos for each function in the suite
+- Sample scenarios with expected results
+- Pre-loaded formulas for quick exploration
+
+> Tip: Copy any function from this sheet into your own workbook to begin using it immediately.
