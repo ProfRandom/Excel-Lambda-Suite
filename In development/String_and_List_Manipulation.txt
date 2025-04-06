@@ -228,3 +228,90 @@ REMOVE_BLANKS_ARRAY = LAMBDA(tbl,
     FILTER(tbl, keep)
   )
 );
+
+
+
+/* LIST_DUPES
+    Returns a list of items which appear more than once in a list
+*/
+
+LIST_DUPES = LAMBDA(list,
+    LET(
+        count_list, UNIQUE(BYROW(list, LAMBDA(x, x & ": " & COUNTIF(list, x)))),
+        output, SORT(FILTER(count_list, VALUE(TEXTAFTER(count_list, ": ")) > 1)),
+        output
+    )
+);
+
+DUPELIST = LAMBDA(list,
+    LET(
+        count_list, UNIQUE(BYROW(list, LAMBDA(x, x & ": " & COUNTIF(list, x)))),
+        output, SORT(FILTER(count_list, VALUE(TEXTAFTER(count_list, ": ")) > 1)),
+        BYROW(output, LAMBDA(x, MATCH(x, output) & " " & x))
+    )
+);
+
+COUNTEACH = LAMBDA(range,
+    LET(
+        test, COLUMNS(range),
+        count_list, SORT(UNIQUE(BYROW(range, LAMBDA(x, x & ": " & COUNTIF(range, x))))),
+        count_list
+    )
+);
+
+COUNT_INSTANCE = LAMBDA(input, target,
+    LET(
+        target, IF(LEN(target) > 1, LEFT(target, 1), target),
+        output, SUM(--ISNUMBER(SEARCH(MID(input, SEQUENCE(LEN(input)), 1), target))),
+        output
+    )
+);
+
+CONTAINS = LAMBDA(array, find, [position], [caseSensitive],
+    LET(
+        // Set default values for optional parameters
+        position, IF(OR(ISOMITTED(position), position > 2, position < 0), 0, position),
+        caseSensitive, IF(OR(ISOMITTED(caseSensitive), caseSensitive > 1, caseSensitive < 0), 0, caseSensitive),
+        
+        // Define search patterns based on position
+        pattern, SWITCH(
+            position,
+            0, find,          // Match anywhere
+            1, find & "*",    // Starts with
+            2, "*" & find     // Ends with
+        ),
+        
+        // Define filtering logic based on case sensitivity
+        filtered, IF(
+            caseSensitive = 0,
+            // Case-insensitive search using SEARCH
+            FILTER(array, ISNUMBER(SEARCH(pattern, array))),
+            // Case-sensitive search using FIND
+            FILTER(array, ISNUMBER(FIND(pattern, array)))
+        ),
+        
+        // Return the filtered result or "None" if no match is found
+        IFERROR(filtered, "None")
+    )
+);
+
+COUNTEACHX = LAMBDA(range, [sortMode], [mode],
+    LET(
+        sortMode, IF(ISOMITTED(sortMode), 0, sortMode), // 0 = by value, 1 = by count
+        mode, IF(ISOMITTED(mode), 0, mode), // 0 = values+counts, 1 = just labels
+        values, UNIQUE(TOROW(range, 1)),
+        counts, MAP(values, LAMBDA(x, COUNTIF(range, x))),
+        sorted, SWITCH(
+            sortMode,
+            0, SORTBY(values, values, 1),
+            1, SORTBY(values, counts, -1),
+            values
+        ),
+        sortedCounts, XLOOKUP(sorted, values, counts),
+        SWITCH(
+            mode,
+            1, sorted,
+            0, CHOOSE({1, 2}, sorted, sortedCounts)
+        )
+    )
+);

@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Summing Utilities/README.md",
+                "file": "Range Utilities/README.md",
                 "mode": "source",
                 "source": false
               },
@@ -170,10 +170,19 @@
   },
   "active": "f454087349fd3edb",
   "lastOpenFiles": [
-    "Summing Utilities/Summing Utilities.txt",
-    "Summing Utilities/Summing Utils.xlsx",
-    "README.md",
     "Summing Utilities/README.md",
-    "Summing Utilities"
+    "Range Utilities/~$Range Utilities.xlsx",
+    "Range Utilities/Range Utilities.txt",
+    "Range Utilities/Range Utilities.xlsx",
+    "Logic Utilities/README.md",
+    "Range Utilities/~$Logic Utilities.xlsx",
+    "Range Utilities/Set_Logic_Functions.txt",
+    "Range Utilities/README.md",
+    "Range Utilities/Logic Utilities.xlsx",
+    "Range Utilities",
+    "In development/String_and_List_Manipulation~.txt",
+    "Logic Utilities/Logic Utilities.xlsx",
+    "Logic Utilities/~$Logic Utilities.xlsx",
+    "README.md"
   ]
 }
