@@ -1,12 +1,44 @@
-DECTIME = LAMBDA(input,[y],[d],[h],[m],[s],
+/* TIME_UNITS_TO_DECIMAL:
+   Purpose:
+   Converts a combination of time units (years, days, hours, minutes, seconds)
+   into a single decimal value in the specified output unit.
+
+   Returns:
+   Either a numeric value or a formatted string (e.g., "123.45h"), depending on output mode.
+
+   Parameters:
+   - unit (required): Output unit (Y, D, H, M, S). Accepts Y, D, H, M, S or their full words.
+   - y, d, h, m, s (optional): Components of time (default = 0)
+   - outputMode (optional): 
+       0 (default) = numeric decimal result  
+       1 = text string with unit suffix (e.g., `12.5h`)
+
+   Notes:
+   - Uses astronomical year definitions (1 year = 365.25 days = 8766 hours).
+   - Useful for converting structured time components to a single value.
+   - Returns `"Invalid Unit"` if `unit` is not recognized.
+   - Always lowercases the unit suffix in text mode.
+
+   Examples:
+     TIME_UNITS_TO_DECIMAL("H", 0, 1, 2, 30, 0) → 26.5  
+     TIME_UNITS_TO_DECIMAL("H", 0, 1, 2, 30, 1) → "26.5h"
+*/
+
+TIME_UNITS_TO_DECIMAL = LAMBDA(unit, [y], [d], [h], [m], [s], [outputMode],
     LET(
+        // Normalize optional inputs to 0
         y, N(y),
         d, N(d),
         h, N(h),
         m, N(m),
         s, N(s),
-        code, UPPER(IF(ISNUMBER(SEARCH(input, "YDHMS")), input, "S")),
-        result, SWITCH(
+        outputMode, IF(ISOMITTED(outputMode), 0, outputMode),
+
+        // Normalize and validate unit code
+        code, UPPER(LEFT(unit, 1)),
+
+        // Compute result based on unit type
+        raw, SWITCH(
             code,
             "S", (y*31557600) + (d*86400) + (h*3600) + (m*60) + s,
             "M", (y*525960) + (d*1440) + (h*60) + m + (s/60),
@@ -15,110 +47,444 @@ DECTIME = LAMBDA(input,[y],[d],[h],[m],[s],
             "Y", y + (d/365.25) + (h/8766) + (m/525960) + (s/31557600),
             "Invalid Unit"
         ),
+
+        // Output as number or string
+        result, IF(
+            outputMode = 1,
+            IF(ISNUMBER(raw), FIXED(raw, 9) & LOWER(code), raw),
+            raw
+        ),
+
         result
     )
 );
 
-DECTIMEF = LAMBDA(input,[y],[d],[h],[m],[s],
-    LET(
-        y, N(y),
-        d, N(d),
-        h, N(h),
-        m, N(m),
-        s, N(s),
-        code, UPPER(IF(ISNUMBER(SEARCH(input, "YDHMS")), input, "S")),
-        result, SWITCH(
-            code,
-            "S", (y*31557600) + (d*86400) + (h*3600) + (m*60) + s,
-            "M", (y*525960) + (d*1440) + (h*60) + m + (s/60),
-            "H", (y*8766) + (d*24) + h + (m/60) + (s/3600),
-            "D", (y*365.25) + d + (h/24) + (m/1440) + (s/86400),
-            "Y", y + (d/365.25) + (h/8766) + (m/525960) + (s/31557600),
-            "Invalid Unit"
-        ),
-        fixed(result,9)&LOWER(code)
-    )
-);
+/* TIME_DECIMAL_TO_UNITS
+   Purpose:
+   Converts a decimal duration (in years, days, hours, etc.) into a human-readable
+   unit breakdown. Output can be verbose (e.g., "0y 0d 1h 59m 59.999s") or
+   colon-delimited (e.g., "00:000:01:59:59.999").
 
-EXPTIMET = LAMBDA(unit, value, [includeZero], [decimalPlaces],
+   Parameters:
+   - unit (required): Time unit of the input value — one of:
+       "Y" = years
+       "D" = days
+       "H" = hours
+       "M" = minutes
+       "S" = seconds
+   - value (required): The numeric duration to convert.
+   - mode (optional):
+       "TEXT" or 1  → verbose output (default)
+       "FORMAT" or 0 → colon-delimited format
+   - decimalPlaces (optional): Number of digits to show after the decimal in seconds (default: 3)
+
+   Returns:
+   A single text string representing the duration in split units.
+
+   Notes:
+   - Safely clamps seconds to avoid rounding up to 60s.
+   - All units are internally converted to seconds using average year length (365.25 days).
+   - If an invalid unit is supplied, returns "Invalid Input".
+   - Verbose output uses suffixes: "y", "d", "h", "m", "s"
+   - Colon format is always: "yy:ddd:hh:mm:ss.sss"
+
+   Examples:
+     TIME_DECIMAL_TO_UNITS("H", 1.999999997)
+     → "0y 0d 1h 59m 59.999s"
+
+     TIME_DECIMAL_TO_UNITS("H", 1.999999997, "FORMAT", 3)
+     → "00:000:01:59:59.999"
+*/
+
+
+TIME_DECIMAL_TO_UNITS = LAMBDA(unit, value, [mode], [decimalPlaces],
     LET(
-        includeZero, IF(ISOMITTED(includeZero), TRUE, includeZero),
+        // === Handle optional arguments ===
         decimalPlaces, IF(ISOMITTED(decimalPlaces), 3, decimalPlaces),
-        unit, UPPER(unit),
-        factor, SWITCH(unit, 
-            "Y", 31557600, 
-            "D", 86400, 
-            "H", 3600, 
-            "M", 60, 
-            "S", 1, 
-            NA()),
+
+        // Allow both text or numeric mode
+        modeText, IF(
+            ISOMITTED(mode), "TEXT",
+            IF(OR(mode = 0, mode = "FORMAT"), "FORMAT", "TEXT")
+        ),
+
+        // === Unit multiplier to seconds ===
+        factor, SWITCH(unit,
+            "Y", 31557600,   // 365.25 days
+            "D", 86400,
+            "H", 3600,
+            "M", 60,
+            "S", 1,
+            NA()
+        ),
+
+        // === Total seconds from input ===
         totalSeconds, value * factor,
+
+        // === Breakdown of time units ===
         y, INT(totalSeconds / 31557600),
         d, INT(MOD(totalSeconds, 31557600) / 86400),
         h, INT(MOD(totalSeconds, 86400) / 3600),
         m, INT(MOD(totalSeconds, 3600) / 60),
-        s, (totalSeconds - trunc(totalSeconds)) * 60,
+        s, MOD(totalSeconds, 60),
 
+        // === Clamp seconds to prevent rounding to 60 ===
+        s_clamped, IF(ROUND(s, decimalPlaces) >= 60, 60 - 10^(-decimalPlaces), ROUND(s, decimalPlaces)),
+
+        // === Output: verbose mode
         formattedY, y & "y",
         formattedD, d & "d",
         formattedH, h & "h",
         formattedM, m & "m",
-        formattedS, int(s*10000)/10000 & "s",  // Pass rounded value directly (future-proofing!)
+        formattedS, TEXT(s_clamped, "0." & REPT("0", decimalPlaces)) & "s",
+        textMode, TEXTJOIN(" ", TRUE, formattedY, formattedD, formattedH, formattedM, formattedS),
 
-        formatText, TEXTJOIN(" ", TRUE,
-            IF(includeZero + y > 0, formattedY, ""),
-            IF(includeZero + d > 0, formattedD, ""),
-            IF(includeZero + h > 0, formattedH, ""),
-            IF(includeZero + m > 0, formattedM, ""),
-            formattedS
+        // === Output: colon-delimited
+        colonS, TEXT(s_clamped, "00." & REPT("0", decimalPlaces)),
+        formatMode, TEXT(y, "00") & ":" & TEXT(d, "000") & ":" & TEXT(h, "00") & ":" &
+                     TEXT(m, "00") & ":" & colonS,
+
+        // === Final output
+        result, IF(modeText = "FORMAT", formatMode, textMode),
+
+        IFERROR(result, "Invalid Input")
+    )
+);
+
+/* TIME_DIFF:
+   Purpose:
+   Calculates the difference between two time values (start and end),
+   returning the result in one of three formats.
+
+   Returns:
+   - A string (hh:mm:ss), a decimal hour value, or a labeled time string,
+     depending on selected mode.
+
+   Parameters:
+   - start (required): Start time (Excel time or datetime format).
+   - end (required): End time (Excel time or datetime format).
+   - mode (optional):
+       0 = "hh:mm:ss" formatted string (default)
+       1 = decimal hours (rounded)
+       2 = labeled components string (e.g., "2h 30m 0s")
+   - roundPlaces (optional): Number of decimal places for mode = 1 (default = 9)
+
+   Notes:
+   - Automatically handles cases where the end time is after midnight.
+   - Outputs "0" or "00:00:00" for equal times.
+   - Ideal for logging, tracking durations, and comparative reports.
+
+   Examples:
+     TIME_DIFF(A1, B1) → "02:45:10"
+     TIME_DIFF(A1, B1, 1, 2) → 2.75
+     TIME_DIFF(A1, B1, 2) → "2h 45m 10s"
+*/
+
+TIME_DIFF = LAMBDA(start, end, [mode], [roundPlaces],
+    LET(
+        // === Optional parameter defaults ===
+        mode, IF(ISOMITTED(mode), 0, mode),
+        roundPlaces, IF(ISOMITTED(roundPlaces), 9, roundPlaces),
+
+        // === Time value conversion to total seconds ===
+        startSec, HOUR(start) * 3600 + MINUTE(start) * 60 + SECOND(start),
+        endSec, HOUR(end) * 3600 + MINUTE(end) * 60 + SECOND(end),
+
+        // === Calculate difference (mod 86400 to handle midnight wrap) ===
+        diffSec, MOD(endSec - startSec, 86400),
+
+        // === Decompose into components ===
+        hh, INT(diffSec / 3600),
+        mm, INT(MOD(diffSec, 3600) / 60),
+        ss, MOD(diffSec, 60),
+
+        // === Construct result per mode ===
+        result, SWITCH(
+            mode,
+            1, TEXT(ROUND(diffSec / 3600, roundPlaces), "0." & REPT("0", roundPlaces)),             // Decimal hours
+            2, hh & "h " & mm & "m " & ss & "s",                // Labeled output
+            TEXT(hh, "00") & ":" & TEXT(mm, "00") & ":" & TEXT(ss, "00")  // "hh:mm:ss"
         ),
 
-        IFERROR(formatText, "Invalid Input")
+        result
     )
 );
 
+/* TIME_MIL12_TO_MIL24:
+   Purpose:
+   Converts a compact "military-style 12-hour" time string (e.g., "0830AM", "1245PM")
+   into a standard military 24-hour format ("HHMM").
 
-EXPTIMEF = LAMBDA(unit, value,
+   Returns:
+   A four-digit string representing the time in 24-hour military format.
+
+   Parameters:
+   - incoming (required): A 6-character string in the form "hhmmAM" or "hhmmPM"
+
+   Notes:
+   - Supports values from "0100AM" to "1200PM" with correct zero-padding.
+   - Handles edge cases:
+       "1200AM" → "0000"  
+       "1200PM" → "1200"
+   - Ideal for converting class schedules or shift logs from legacy military 12-hour systems.
+
+   Example:
+   TIME_MIL12_TO_MIL24("0830PM") → "2030"
+   TIME_MIL12_TO_MIL24("1200AM") → "0000"
+*/
+
+TIME_MIL12_TO_MIL24 = LAMBDA(incoming,
     LET(
-        factor, SWITCH(unit, 
-            "Y", 31557600, 
-            "D", 86400, 
-            "H", 3600, 
-            "M", 60, 
-            "S", 1, 
-            NA()),
-        totalSeconds, value * factor,
+        // Extract suffix and time portion
+        ampm, RIGHT(incoming, 2),
+        hhmm, LEFT(incoming, 4),
 
-        // Compute raw units
-        //rawS, totalSeconds - INT(totalSeconds / 60) * 60,
-        rawS, (totalSeconds - trunc(totalSeconds)) * 60,
-        totalMinutes, INT(totalSeconds / 60),
-        rawM, MOD(totalMinutes, 60),
-        totalHours, INT(totalMinutes / 60),
-        rawH, MOD(totalHours, 24),
-        totalDays, INT(totalHours / 24),
-        rawD, MOD(totalDays, 365.25),
-        rawY, INT(totalDays / 365.25),
+        // Parse hour and minute components
+        hour, VALUE(LEFT(hhmm, 2)),
+        minute, RIGHT(hhmm, 2),
 
-        // Handle carryover for minutes
-        carryH, IF(rawM >= 60, 1, 0),
-        m, IF(rawM >= 60, 0, rawM),
+        // Adjust for 24-hour conversion rules
+        hr, SWITCH(ampm,
+            "AM", IF(hour = 12, "00", TEXT(hour, "00")),
+            "PM", IF(hour = 12, "12", TEXT(hour + 12, "00"))
+        ),
 
-        // Handle carryover for hours
-        carryD, IF(rawH + carryH >= 24, 1, 0),
-        h, IF(rawH + carryH >= 24, 0, rawH + carryH),
+        // Combine hour and minute into final string
+        output, TEXTJOIN("", , hr, minute),
+        output
+    )
+);
 
-        // Handle carryover for days
-        carryY, IF(rawD + carryD >= 365.25, 1, 0),
-        d, IF(rawD + carryD >= 365.25, 0, rawD + carryD),
-        y, rawY + carryY,
 
-        // Format output
-        TEXT(y, "00") & ":" & TEXT(d, "000") & ":" & TEXT(h, "00") & ":" & TEXT(m, "00") & ":" & int(rawS*10000)/10000
-        //rawS
+/* TIME_MIL24_TO_MIL12:
+   Purpose:
+   Converts a 24-hour military time string (e.g., "1345", "0000") into a
+   compact 12-hour military-style format with AM/PM suffix (e.g., "0145PM", "1200AM").
+
+   Returns:
+   A 6-character string in the form "hhmmAM" or "hhmmPM".
+
+   Parameters:
+   - incoming (required): A 4-digit string representing military time ("HHMM").
+
+   Notes:
+   - Midnight ("0000") is returned as "1200AM"
+   - Noon ("1200") is returned as "1200PM"
+   - Hours are always zero-padded to 2 digits.
+   - Ideal for reversing time transformations for display or exports.
+
+   Example:
+   TIME_MIL24_TO_MIL12("1345") → "0145PM"
+   TIME_MIL24_TO_MIL12("0000") → "1200AM"
+*/
+
+TIME_MIL24_TO_MIL12 = LAMBDA(incoming,
+    LET(
+        // Extract hour and minute components
+        hour, VALUE(LEFT(incoming, 2)),
+        minute, RIGHT(incoming, 2),
+        
+        // Determine AM/PM based on 24-hour time
+        ampm, IF(hour < 12, "AM", "PM"),
+        
+        // Convert hour to 12-hour format
+        hr, SWITCH(hour,
+            0, "12",                                  // Midnight → 12 AM
+            12, "12",                                 // Noon stays 12 PM
+            IF(hour > 12, TEXT(hour - 12, "00"), TEXT(hour, "00"))
+        ),
+
+        // Concatenate output string: hhmmAM/PM
+        output, TEXTJOIN("", , hr, minute, ampm),
+        output
     )
 );
 
 
 
+/* TIME_MIL12_TO_CLOCK12:
+   Purpose:
+   Converts a compact military-style 12-hour time string (e.g., "0930AM", "1245PM")
+   into a human-readable 12-hour clock format with colon (e.g., "9:30AM", "12:45PM").
 
+   Returns:
+   A time string in the format "h:mmAM" or "h:mmPM".
+
+   Parameters:
+   - incoming (required): A 6-character string in the format "hhmmAM" or "hhmmPM".
+
+   Notes:
+   - Input hour "12" is preserved for both midnight and noon.
+   - Input hour "00" is converted to "12" to maintain valid 12-hour formatting.
+   - This function is intended for display purposes, not serial time arithmetic.
+   - Useful when parsing legacy scheduling systems or time exports into clean display formats.
+
+   Example:
+   TIME_MIL12_TO_CLOCK12("0930AM") → "9:30AM"
+   TIME_MIL12_TO_CLOCK12("1245PM") → "12:45PM"
+*/
+
+TIME_MIL12_TO_CLOCK12 = LAMBDA(incoming,
+    LET(
+        // Extract AM/PM suffix and time portion
+        ampm, RIGHT(incoming, 2),
+        hhmm, LEFT(incoming, 4),
+
+        // Extract numeric hour and minute
+        hour, VALUE(LEFT(hhmm, 2)),
+        minute, RIGHT(hhmm, 2),
+
+        // Convert to clock-friendly 12-hour format
+        hr, SWITCH(hour,
+            12, "12",                                  // Noon & Midnight stay "12"
+            0, "12",                                    // Handle edge case "00" as "12"
+            IF(ampm = "PM", TEXT(hour, "0"), TEXT(hour, "0"))  // Drop leading zero
+        ),
+
+        // Format final time string
+        output, TEXTJOIN(":", , hr, minute) & ampm,
+        output
+    )
+);
+
+
+/* TIME_CLOCK12_TO_MIL12:
+   Purpose:
+   Converts a standard 12-hour clock string (e.g., "9:30 AM", "12:45 PM") into a compact
+   military-style 12-hour string with no delimiters (e.g., "0930AM", "1245PM").
+
+   Returns:
+   A 6-character string: "hhmmAM" or "hhmmPM"
+
+   Parameters:
+   - incoming (required): An Excel-readable 12-hour time string, e.g. "9:30 AM" or a serial time value.
+
+   Notes:
+   - Leading zeros are added to hours and minutes to ensure proper "hhmm" formatting.
+   - Accepts either text-based time ("9:30 AM") or serial time values.
+   - Ideal for converting user-friendly time formats into fixed-width military input for scheduling or export systems.
+
+   Example:
+   TIME_CLOCK12_TO_MIL12("9:30 AM") → "0930AM"
+   TIME_CLOCK12_TO_MIL12("12:00 PM") → "1200PM"
+*/
+
+TIME_CLOCK12_TO_MIL12 = LAMBDA(incoming,
+    LET(
+        // Format as "hh:mm AM/PM" text regardless of input type
+        toText, TEXT(incoming, "HH:MM AM/PM"),
+
+        // Extract suffix
+        ampm, UPPER(RIGHT(toText, 2)),
+
+        // Extract hour and minute components with leading zeros
+        hr, TEXT(TEXTBEFORE(toText, ":"), "00"),
+        mn, TEXT(TEXTBEFORE(TEXTAFTER(toText, ":"), RIGHT(toText, 2)), "00"),
+
+        // Concatenate to final format
+        output, hr & mn & ampm,
+        output
+    )
+);
+
+
+/* TIME_MIL12_SHIFT:
+   Purpose:
+   Shifts a time in compact 12-hour military-style format (e.g., "0900AM")
+   forward or backward by a specified number of hours (can be fractional).
+
+   Returns:
+   A new time string in "hhmmAM" or "hhmmPM" format, wrapping correctly over midnight if needed.
+
+   Parameters:
+   - incoming (required): A 12-hour time string in the format "hhmmAM" or "hhmmPM"
+     (e.g., "0930AM", "1245PM").
+   - adjustment (required): Number of hours to add (can be negative or fractional).
+
+   Common Use Cases:
+   - Calculate end time of a class or event by adding class duration to a start time.
+     → e.g., TIME_MIL12_SHIFT("0930AM", 2.25) → "1145AM"
+   - Determine when a class must start to finish by a certain time.
+     → e.g., TIME_MIL12_SHIFT("1145AM", -2.25) → "0930AM"
+   - Adjust static schedule blocks without converting to serial or formatted times.
+
+   Notes:
+   - Input time is parsed as Excel-readable, then converted internally to decimal time.
+   - Result wraps over midnight correctly using `MOD(...)`.
+   - Output preserves compact formatting used in some scheduling systems.
+
+   Examples:
+     TIME_MIL12_SHIFT("0900AM", 2.5)  → "1130AM"
+     TIME_MIL12_SHIFT("1130PM", 2)    → "0130AM"
+     TIME_MIL12_SHIFT("0100AM", -3)   → "1000PM"
+*/
+
+TIME_MIL12_SHIFT = LAMBDA(incoming, adjustment,
+    LET(
+        // === Extract components from incoming time ===
+        ampm, RIGHT(incoming, 2),
+        hhmm, LEFT(incoming, 4),
+        hour, VALUE(LEFT(hhmm, 2)),
+        minute, VALUE(RIGHT(hhmm, 2)) / 60,
+
+        // === Convert to Excel serial time
+        excelTime, TIME(hour + IF(AND(ampm = "PM", hour < 12), 12, 0), minute * 60, 0),
+
+        // === Apply adjustment in hours and wrap around midnight
+        newTime, MOD(excelTime + adjustment / 24, 1),
+
+        // === Extract components of new time
+        newHour, HOUR(newTime),
+        newMin, MINUTE(newTime),
+        suffix, IF(newHour >= 12, "PM", "AM"),
+
+        // === Format to 12-hour compact style
+        formattedHour, TEXT(MOD(newHour, 12), "00"),
+        finalHour, IF(formattedHour = "00", "12", formattedHour),
+        finalMin, TEXT(newMin, "00"),
+
+        TEXTJOIN("", , finalHour, finalMin, suffix)
+    )
+);
+
+
+
+/* TIME_STD12_SHIFT:
+   Purpose:
+   Shifts a standard 12-hour Excel time value (e.g., "9:30 AM") by a given number of hours.
+   Optionally returns the result as a formatted text string or as a raw serial time.
+
+   Returns:
+   - A new time either as a numeric Excel serial (default), or as a formatted "hh:mm AM/PM" string if `formatted = TRUE`.
+
+   Parameters:
+   - startTime (required): An Excel 12-hour time value (e.g., TIME(9,30,0) or "9:30 AM").
+   - adjustment (required): Number of hours to add (can be fractional or negative).
+   - formatted (optional): 
+       - TRUE → return result as "hh:mm AM/PM" text
+       - FALSE or omitted → return raw Excel time value
+
+   Notes:
+   - Uses `MOD(..., 1)` to ensure wraparound over 24-hour boundaries.
+   - Compatible with Excel’s native time system (fractional days).
+   - Ideal for calculating adjusted times in scheduling tools or dashboards.
+
+   Examples:
+     TIME_STD12_SHIFT("9:30 AM", 2.5) → 0.52083 (Excel time for 12:00 PM)
+     TIME_STD12_SHIFT("9:30 AM", 2.5, TRUE) → "12:00 PM"
+     TIME_STD12_SHIFT("11:45 PM", 1.25, TRUE) → "01:00 AM"
+*/
+
+TIME_STD12_SHIFT = LAMBDA(startTime, adjustment, [formatted],
+    LET(
+        // === Apply hour-based adjustment and wrap around 24h clock ===
+        newTime, MOD(startTime + (adjustment / 24), 1),
+
+        // === Return based on output mode ===
+        IF(
+            ISOMITTED(formatted), 
+            newTime,  // Default: Return Excel time serial
+            TEXT(newTime, "hh:mm AM/PM")  // If TRUE, return formatted string
+        )
+    )
+);
