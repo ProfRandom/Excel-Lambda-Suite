@@ -1,1 +1,6 @@
-{}
+{
+  "enabledCssSnippets": [
+    "bold-override"
+  ],
+  "theme": "obsidian"
+}

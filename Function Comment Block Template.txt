@@ -1,0 +1,16 @@
+/* FUNCTION_NAME:
+   Purpose: [One-sentence explanation]
+   Returns: [Result type & shape]
+
+   Parameters:
+   - param1 (required): [Meaning]
+   - param2 (optional): [Default and effect]
+   - ...
+
+   Notes:
+   - [Any quirks, edge behaviors, performance notes]
+   - [Inspiration, e.g., “built on Excel’s SEQUENCE()”]
+   
+   Example:
+   FUNCTION_NAME(param1, param2, ...)
+*/

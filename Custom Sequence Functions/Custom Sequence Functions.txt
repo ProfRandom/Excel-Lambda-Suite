@@ -1,0 +1,201 @@
+/* SEQ_SPAN:
+   Purpose:
+   Returns a fixed-length sequence of evenly spaced numbers
+   between a lower and upper bound. Both bounds are always included.
+
+   Returns:
+   A horizontal array of `count` values from `lbound` to `ubound`, inclusive.
+
+   Parameters:
+   - lbound (required): Starting value of the sequence.
+   - ubound (required): Ending value of the sequence.
+   - count (required): Total number of values in the sequence (must be ≥ 2).
+
+   Notes:
+   - Uses simple linear interpolation to determine spacing.
+   - Step size = (ubound - lbound) / (count - 1)
+   - Built on Excel’s native SEQUENCE function.
+   - Ideal when exact endpoints and total number of values are known.
+
+   Example:
+   SEQ_SPAN(0, 10, 6) → {0, 2, 4, 6, 8, 10}
+*/
+
+SEQ_SPAN = LAMBDA(lbound, ubound, count,
+    LET(
+        // Calculate evenly spaced step size
+        stp, (ubound - lbound) / (count - 1),
+
+        // Generate sequence of 'count' values starting at lbound with step size 'stp'
+        sequence(count, , lbound, stp)
+    )
+);
+
+
+
+/* SEQ_STEP:
+   Purpose:
+   Returns a dynamic-length sequence between two bounds using a
+   specified step size. Direction is inferred automatically.
+
+   Returns:
+   A horizontal or vertical array of values incremented by `step`,
+   starting from `lbound` and stopping at or before `ubound`.
+
+   Parameters:
+   - lbound (required): Starting value of the sequence.
+   - ubound (required): Ending threshold of the sequence.
+   - step (optional): Increment between values (default = 1).
+   - mode (optional): Output shape (0 = row [default], 1 = column).
+
+   Notes:
+   - Handles negative steps for descending sequences.
+   - Length varies depending on bounds and step size.
+   - If ubound is not a multiple of step, the last value will be the
+     last one before ubound.
+
+   Example:
+   SEQ_STEP(3, 11, 2) → {3, 5, 7, 9, 11}
+   SEQ_STEP(10, 0, -2, 1) → vertical list from 10 to 0
+*/
+
+SEQ_STEP = LAMBDA(lbound, ubound, [step], [mode],
+    LET(
+        // === Handle optional parameters ===
+        mode, IF(ISOMITTED(mode), 0, mode),      // 0 = horizontal (default), 1 = vertical
+        step, IF(ISOMITTED(step), 1, step),      // Default step = 1
+
+        // === Calculate number of steps ===
+        // Ensures full coverage between lbound and ubound with given step
+        count, ABS((ubound - (lbound - ABS(step))) / step),
+
+        // === Choose correct direction ===
+        // If stepping backward (negative), start at upper bound
+        start, IF(step < 0, ubound, lbound),
+
+        // === Generate the sequence ===
+        list, SEQUENCE(count, , start, step),
+
+        // === Format output orientation ===
+        output, IF(mode = 0, list, TRANSPOSE(list)),
+
+        output
+    )
+);
+
+
+
+
+/* SEQ_BOUND:
+   Purpose:
+   Returns a sequence of evenly spaced values between two bounds,
+   with precise control over inclusion/exclusion of each bound.
+
+   Returns:
+   A horizontal array of values with interval spacing,
+   based on inclusion mode and rounding precision.
+
+   Parameters:
+   - lbound (required): Lower bound of the interval.
+   - ubound (required): Upper bound of the interval.
+   - count (required): Number of segments (not points) if both bounds included.
+   - mode (optional):
+       0 = include both bounds (default)
+       1 = exclude upper bound only
+       2 = exclude lower bound only
+       3 = exclude both bounds
+   - rnd (optional): Rounding precision (default = 3 decimals)
+
+   Notes:
+   - The number of returned values is typically count + 1 if bounds are included.
+   - Uses SWITCH to adjust sequence range based on inclusion/exclusion.
+   - Useful for trimmed interpolation or controlled midpoint generation.
+
+   Example:
+   SEQ_BOUND(0, 1, 4, 0) → {0.000, 0.250, 0.500, 0.750, 1.000}
+   SEQ_BOUND(0, 1, 4, 3) → {0.200, 0.400, 0.600}
+*/
+
+SEQ_BOUND = LAMBDA(lbound, ubound, count, [mode], [rnd],
+    LET(
+        // === Handle optional arguments ===
+        rnd, IF(ISOMITTED(rnd), 3, rnd),     // Decimal places to round to (default = 3)
+        mode, IF(ISOMITTED(mode), 0, mode),  // 0 = inclusive, 1–3 = variations on endpoint inclusion
+
+        // === Core step math ===
+        stp, (ubound - lbound) / count,      // Step size based on count
+        rng, (ubound - lbound) / stp,        // Number of steps (non-rounded count)
+
+        // === Mode switch for sequence bounds ===
+        list, SWITCH(mode,
+            0, ROUND(SEQUENCE(rng + 1, , lbound, stp), rnd),          // Inclusive: [lbound, ..., ubound]
+            1, ROUND(SEQUENCE(rng, , lbound, stp), rnd),              // Right-exclusive: [lbound, ..., ubound)
+            2, ROUND(SEQUENCE(rng, , lbound + stp, stp), rnd),        // Left-exclusive: (lbound, ..., ubound]
+            3, ROUND(SEQUENCE(rng - 1, , lbound + stp, stp), rnd)     // Fully-exclusive: (lbound, ..., ubound)
+        ),
+
+        list
+    )
+);
+
+
+/* SEQ_REPEAT:
+   Purpose:
+   Returns a sequence in which either each value or the entire sequence is
+   repeated a specified number of times. Supports ascending or descending sequences.
+
+   Returns:
+   A vertical array of values based on repeat mode and bounds.
+
+   Parameters:
+   - start (required): The first value in the sequence.
+   - end (required): The last value in the sequence.
+   - repeat (required): Number of times to repeat values or the full sequence.
+                        Must be a positive number greater than 0.
+   - repeatMode (optional):
+       0 = Repeat each value individually (default)
+       1 = Repeat the entire sequence as a block
+
+   Notes:
+   - Mode 0: Each value between start and end is repeated `repeat` times.
+     e.g. 1,1,2,2,3,3
+   - Mode 1: The entire sequence from start to end is repeated `repeat` times.
+     e.g. 1,2,3,1,2,3
+   - Supports both ascending and descending sequences.
+   - Validates that `repeat` is a positive number; otherwise returns an error message.
+   - Built using MAKEARRAY for performance and scalability.
+
+   Example:
+   SEQ_REPEAT(1, 3, 2, 0) → {1;1;2;2;3;3}
+   SEQ_REPEAT(1, 3, 2, 1) → {1;2;3;1;2;3}
+*/
+
+SEQ_REPEAT = LAMBDA(start, end, repeat, [repeatMode],
+    LET(
+        // === Normalize parameters ===
+        n, IF(ISNUMBER(repeat), repeat, 1),                            // How many times to repeat each number
+        repeatMode, IF(ISOMITTED(repeatMode), 0, repeatMode),         // 0 = repeat each value n times (block-wise), 1 = cycle the sequence n times
+
+        // === Sequence characteristics ===
+        len, ABS(end - start) + 1,                                    // Number of unique values in the base sequence
+        step, IF(end > start, 1, -1),                                 // Step direction (+1 or -1)
+
+        // === Validation ===
+        errorMessage, "Invalid input: 'repeat' must be a positive number greater-than 0",
+
+        // === Sequence generator based on mode ===
+        result, IF(
+            NOT(AND(ISNUMBER(n), n > 0)),                             // Check for valid repeat count
+            errorMessage,
+            IF(
+                repeatMode = 0,
+                // Block-wise repeat: e.g. 1,1,1,2,2,2,...
+                MAKEARRAY(len * n, 1, LAMBDA(r, c, start + step * INT((r - 1) / n))),
+                // Cycle repeat: e.g. 1,2,3,1,2,3,...
+                MAKEARRAY(len * n, 1, LAMBDA(r, c, start + step * MOD(r - 1, len)))
+            )
+        ),
+
+        result
+    )
+);

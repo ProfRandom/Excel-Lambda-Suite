@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Range Utilities/README.md",
+                "file": "Custom Sequence Functions/README.md",
                 "mode": "source",
                 "source": false
               },
@@ -170,6 +170,10 @@
   },
   "active": "f454087349fd3edb",
   "lastOpenFiles": [
+    "Custom Sequence Functions/Custom Sequence Functions.txt",
+    "Custom Sequence Functions/Untitled 1.md",
+    "Custom Sequence Functions/Untitled.md",
+    "Range Utilities/README.md",
     "Summing Utilities/README.md",
     "Range Utilities/~$Range Utilities.xlsx",
     "Range Utilities/Range Utilities.txt",
@@ -177,7 +181,6 @@
     "Logic Utilities/README.md",
     "Range Utilities/~$Logic Utilities.xlsx",
     "Range Utilities/Set_Logic_Functions.txt",
-    "Range Utilities/README.md",
     "Range Utilities/Logic Utilities.xlsx",
     "Range Utilities",
     "In development/String_and_List_Manipulation~.txt",

@@ -1,0 +1,253 @@
+.callout[data-callout="note"] {
+  background-color: #344356;
+  border-left: 4px solid #849bb8;
+  color: white;
+  font-style: italic;
+}
+
+/* Shared styling for title and icon */
+.callout[data-callout="note"] .callout-title,
+.callout[data-callout="note"] .callout-icon,
+.callout[data-callout="note"] .callout-icon svg {
+  color: #849bb8 !important;
+  stroke: #849bb8 !important;
+}
+
+/* Optional: ensure background of SVG stays transparent */
+.callout[data-callout="note"] .callout-icon svg {
+  fill: #344356 !important;
+}
+
+.callout[data-callout="tip"] {
+  background-color: #48384c;
+  border-left: 4px solid #a790ad;
+  color: white;
+  font-style: italic;
+}
+
+/* Shared styling for title and icon */
+.callout[data-callout="tip"] .callout-title,
+.callout[data-callout="tip"] .callout-icon,
+.callout[data-callout="tip"] .callout-icon svg {
+  color: #a790ad !important;
+  stroke: #a790ad !important;
+}
+
+/* Optional: ensure background of SVG stays transparent */
+.callout[data-callout="tip"] .callout-icon svg {
+  fill: #48384c !important;
+}
+
+.callout[data-callout="info"] {
+  background-color: #395b40;
+  border-left: 4px solid #00b98f;
+  color: white;
+  font-style: italic;
+}
+
+/* Shared styling for title and icon */
+.callout[data-callout="info"] .callout-title,
+.callout[data-callout="info"] .callout-icon,
+.callout[data-callout="info"] .callout-icon svg {
+  color: #00b98f !important;
+  stroke: #00b98f !important;
+}
+
+/* Optional: ensure background of SVG stays transparent */
+.callout[data-callout="info"] .callout-icon svg {
+  fill: #395b40 !important;
+}
+
+
+.callout[data-callout="warning"] {
+  background-color: #55571e;
+  border-left: 4px solid #00b98f;
+  color: white;
+  font-style: italic;
+}
+
+/* Shared styling for title and icon */
+.callout[data-callout="warning"] .callout-title,
+.callout[data-callout="warning"] .callout-icon,
+.callout[data-callout="warning"] .callout-icon svg {
+  color: #00b98f !important;
+  stroke: #00b98f !important;
+}
+
+/* Optional: ensure background of SVG stays transparent */
+.callout[data-callout="warning"] .callout-icon svg {
+  fill: #55571e !important;
+}
+
+.callout[data-callout="danger"] {
+  background-color: #5d3a27;
+  border-left: 4px solid #b77652;
+  color: white;
+  font-style: italic;
+}
+
+/* Shared styling for title and icon */
+.callout[data-callout="danger"] .callout-title,
+.callout[data-callout="danger"] .callout-icon,
+.callout[data-callout="danger"] .callout-icon svg {
+  color: #b77652 !important;
+  stroke: #b77652 !important;
+}
+
+/* Optional: ensure background of SVG stays transparent */
+.callout[data-callout="danger"] .callout-icon svg {
+  fill: #5d3a27 !important;
+}
+
+
+body {
+  --inline-title-color: #FFAA00 !important;
+  --inline-title-font: "Open Sans";
+  /*--inline-title-line-height: var(--h1-line-height);*/
+  --inline-title-size: 22pt;
+  /*--inline-title-style: var(--h1-style);
+  --inline-title-variant: var(--h1-variant);*/
+  --inline-title-weight: bold;
+
+}
+
+.markdown-preview-view {
+  background-color: #464646 !important;
+   color: #FFFFFF !important;
+  border-left: 4px solid var(--accent-color);
+  padding: 1em;
+}
+
+
+/* Override for bold text in reading (preview) mode */
+.markdown-preview-view strong {
+  color: khaki !important;
+  font-weight: bold !important;
+}
+
+/* Override for bold text in editor (live view) mode */
+.cm-s-obsidian span.cm-strong {
+  color: khaki !important;
+  font-weight: bold !important;
+}
+
+/* Italic text in preview (reading mode) */
+.markdown-preview-view em {
+  color: aquamarine !important;
+  font-style: italic !important;
+}
+
+/* Italic text in editor (live edit mode) */
+.cm-s-obsidian span.cm-em {
+  color: aquamarine !important;
+  font-style: italic !important;
+}
+
+/* Edit mode: bold + italic = force bold color */
+.cm-s-obsidian span.cm-strong.cm-em {
+  color: khaki !important;  /* Use your bold color here */
+  font-weight: bold !important;
+  font-style: italic !important;
+}
+
+/* Handles both nesting orders */
+.markdown-preview-view strong em,
+.markdown-preview-view em strong {
+  color: khaki !important;
+  font-weight: bold !important;
+  font-style: italic !important;
+}
+
+
+
+/* Header Font Family */
+.cm-s-obsidian .cm-header-1,
+.cm-s-obsidian .cm-header-2,
+.cm-s-obsidian .cm-header-3,
+.cm-s-obsidian .cm-header-4,
+.cm-s-obsidian .cm-header-5,
+.cm-s-obsidian .cm-header-6 {
+  font-family: "Georgia" !important;
+  font-weight: normal !important;
+}
+
+/* Header Font Family */
+.markdown-preview-view h1,
+.markdown-preview-view h2,
+.markdown-preview-view h3,
+.markdown-preview-view h4,
+.markdown-preview-view h5,
+.markdown-preview-view h6 {
+  font-family: "Georgia" !important;
+  font-weight: normal !important;
+}
+
+/* H1 in preview (reading mode) */
+.markdown-preview-view h1 {
+   font-size: 24pt !important; 
+  color: lightgreen !important;
+}
+
+/* H1 in editor (live editing mode) */
+.cm-s-obsidian .cm-header-1 {
+  color: lightgreen !important;
+}
+
+/* H2 in preview (reading mode) */
+.markdown-preview-view h2 {
+  color: cornsilk !important;
+}
+
+/* H2 in editor (live editing mode) */
+.cm-s-obsidian .cm-header-2 {
+  color: cornsilk !important;
+}
+
+/* H3 in preview (reading mode) */
+.markdown-preview-view h3 {
+  color: paleturquoise !important;
+}
+
+/* H3 in editor (live editing mode) */
+.cm-s-obsidian .cm-header-3 {
+  color: paleturquoise !important;
+}
+
+/* H4 in preview (reading mode) */
+.markdown-preview-view h4 {
+  color: seashell !important;
+}
+
+/* H4 in editor (live editing mode) */
+.cm-s-obsidian .cm-header-4 {
+  color: seashell !important;
+}
+
+/* H5 in preview (reading mode) */
+.markdown-preview-view h5 {
+  color: thistle !important;
+}
+
+/* H5 in editor (live editing mode) */
+.cm-s-obsidian .cm-header-5 {
+  color: thistle !important;
+}
+
+/* H6 in preview (reading mode) */
+.markdown-preview-view h6 {
+  color: lightpink !important;
+}
+
+/* H6 in editor (live editing mode) */
+.cm-s-obsidian .cm-header-6 {
+  color: lightpink !important;
+}
+
+*/@media print {
+  .markdown-preview-view {
+    background: white !important;
+    color: black !important;
+  }
+}*/
+
+
