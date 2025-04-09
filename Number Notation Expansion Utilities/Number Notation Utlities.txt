@@ -1,0 +1,156 @@
+/* NUMNOTE_ENGINEERING:
+   Purpose:
+   Converts a number into **engineering notation** (i.e., exponent is always a multiple of 3).
+
+   Returns:
+   A text string in the form of `X.XXE+YY`, where `YY` is a multiple of 3.
+
+   Parameters:
+   - input (required): A numeric value to convert.
+   - prec (optional): Number of decimal places to show (default = 2)
+
+   Notes:
+   - Useful for scientific/engineering fields where SI-prefix alignment matters.
+   - Similar to scientific notation, but exponent is constrained to multiples of 3.
+   - Automatically rounds the mantissa to the specified precision.
+
+   Example:
+     NUMNOTE_ENGINEERING(1234567)
+     → "1.23E+06"
+
+     NUMNOTE_ENGINEERING(0.000478, 3)
+     → "478.000E-06"
+*/
+
+NUMNOTE_ENGINEERING = LAMBDA(input, [prec],
+    LET(
+        // Precision default to 2 if omitted
+        prec, IF(ISOMITTED(prec), 2, prec),
+
+        // Compute exponent (rounded down to nearest multiple of 3)
+        power, TRUNC(LOG10(ABS(input))),
+        divisor, power - MOD(power, 3),
+
+        // Normalize input value to mantissa
+        adjust, 10 ^ divisor,
+        value, ROUND(input / adjust, prec),
+
+        // Format suffix as E+03 style
+        suff, "E" & IF(divisor >= 0, "+", "") & TEXT(divisor, "00"),
+
+        // Compose formatted output
+        output, TEXT(value, "0." & REPT("0", prec)) & suff,
+        output
+    )
+);
+
+/* NUMNOTE_MAGNITUDE
+   Purpose:
+   Converts a numeric value into a human-readable string using
+   metric SI-style suffixes (e.g., "k", "M", "G").
+
+   Parameters:
+   - input (required): Numeric value to convert.
+   - decprec (optional): Decimal precision to round the output (default = 3).
+
+   Returns:
+   A string with the number scaled and suffixed using common metric notation.
+
+   Notes:
+   - Supports scaling up to 10^30.
+   - Suffix progression: "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"
+   - Values under 10^3 return the raw value with a dash: `"—"`
+   - Extremely large values are capped at the highest known suffix.
+   - Decimal rounding is optional and defaults to 3 digits.
+
+   Examples:
+     NUMNOTE_MAGNITUDE(123456)         → "123.456 k"
+     NUMNOTE_MAGNITUDE(987654321, 2)   → "987.65 M"
+     NUMNOTE_MAGNITUDE(0.015)          → "0.015 —"
+*/
+
+NUMNOTE_MAGNITUDE = LAMBDA(input, [decprec],
+    LET(
+        max, 30,  // Maximum power of ten to avoid overflow
+        decprec, IF(ISOMITTED(decprec), 3, decprec),  // Default precision
+        input, ABS(input),  // Absolute value for magnitude calculation
+
+        // Calculate the order of magnitude
+        power, TRUNC(LOG(input)),
+        category, MOD(power, 3),
+        divisor, SWITCH(category, 0, power, 1, power - 1, 2, power - 2),
+        adjust, IF(divisor <= max, 10 ^ divisor, 10 ^ max),
+        
+        // Scaled value and suffix
+        value, input / adjust,
+        suff, SWITCH(
+            divisor,
+            0, "—", 3, "k", 6, "M", 9, "G", 12, "T",
+            15, "P", 18, "E", 21, "Z", 24, "Y", 27, "R",
+            30, "Q", "??"
+        ),
+        
+        // Final output
+        output, FIXED(value, decprec, TRUE) & " " & suff,
+        output
+    )
+);
+
+/* NUMNOTE_POWERTAG:
+   Purpose:
+   Returns only the exponent tag portion of a number’s scientific or power-of-ten notation.
+   This does not include the coefficient — just the symbolic representation of the scale.
+
+   Returns:
+   - Either an "E+nn" tag or a "10^n" label representing the power of 10.
+
+   Parameters:
+   - input (required): A positive numeric value.
+   - mode (optional):
+       0 (default): "E+nn" format (e.g., "E+03")
+       1         : "10^n" format (e.g., "10^3")
+
+   Notes:
+   - This function is intended for labeling, formatting, or annotation — not for math.
+   - The coefficient (mantissa) is not included in the result.
+   - Equivalent to extracting the exponent from scientific notation.
+   - Mode 2 from earlier versions has been removed as redundant (Excel supports it via TEXT(..., "0.00E+00"))
+
+   Examples:
+     NUMNOTE_POWERTAG(4560)       → "E+03"
+     NUMNOTE_POWERTAG(0.00123, 1) → "10^-3"
+     TEXTJOIN("", , coeff, NUMNOTE_POWERTAG(x)) → Full label
+
+   See also:
+   - NUMNOTE_MAGNITUDE — adds metric suffixes like "k", "M", etc.
+   - NUMNOTE_ENGINEERING — includes the coefficient with a fixed exponent
+*/
+
+
+NUMNOTE_POWERTAG = LAMBDA(input, [mode],
+    LET(
+        // === Set default output mode ===
+        // mode = 0 → "E+nn" (default)
+        // mode = 1 → "10^n"
+        mode, IF(ISOMITTED(mode), 0, mode),
+
+        // === Calculate the base-10 exponent ===
+        // TRUNC(LOG10(...)) gives us the order-of-magnitude power
+        mag, TRUNC(LOG10(input)),
+
+        // === Format based on mode ===
+        // Mode 0 → scientific tag (e.g., E+03)
+        // Mode 1 → math expression (e.g., 10^3)
+        result, SWITCH(
+            mode,
+            0, "E+" & TEXT(mag, "00"),
+            1, "10^" & mag,
+            "Invalid mode"
+        ),
+
+        // === Return result ===
+        result
+    )
+);
+
+

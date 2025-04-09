@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Number Notation Expansion Utilities/README.md",
+                "file": "Excel array tricks/Untitled.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "Untitled"
             }
           }
         ]
@@ -170,8 +170,13 @@
   },
   "active": "f454087349fd3edb",
   "lastOpenFiles": [
-    "Time Conversion Functions/README.md",
+    "Number Notation Expansion Utilities/Number Notation Utlities.txt",
     "Number Notation Expansion Utilities/README.md",
+    "Excel array tricks/Untitled.md",
+    "Excel array tricks",
+    "Conversion Utilities/NUM_ONLY code explanation.txt",
+    "Conversion Utilities/StripSpectralClass.txt",
+    "Time Conversion Functions/README.md",
     "Number Notation Expansion Utilities/Number Notation Utlities.xlsx",
     "Number Notation Expansion Utilities/~$Number Notation Utlities.xlsx",
     "Number Notation Expansion Utilities",
@@ -181,9 +186,6 @@
     "Conversion Utilities/README.md",
     "Conversion Utilities/Conversion Utlities.xlsx",
     "Conversion Utilities/~$Conversion Utlities.xlsx",
-    "Conversion Utilities",
-    "Time Conversion Functions/~$TimeConversionFunctions.xlsx",
-    "Conversions",
     "Custom Sequence Functions/README.md",
     "Custom Sequence Functions/Untitled.md",
     "Custom Sequence Functions/Untitled 1.md",
