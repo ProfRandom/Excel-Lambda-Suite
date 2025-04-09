@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Time Conversion Functions/README.md",
+                "file": "Conversions/README.md",
                 "mode": "source",
                 "source": false
               },
@@ -170,9 +170,15 @@
   },
   "active": "f454087349fd3edb",
   "lastOpenFiles": [
+    "Conversion Utilities/Conversion Utlities.xlsx",
+    "Conversion Utilities/~$Conversion Utlities.xlsx",
+    "Conversion Utilities",
+    "Time Conversion Functions/~$TimeConversionFunctions.xlsx",
+    "Time Conversion Functions/README.md",
+    "Conversions/README.md",
+    "Conversions",
     "In development/Old Time Conversions.txt",
     "Custom Sequence Functions/README.md",
-    "Time Conversion Functions/~$TimeConversionFunctions.xlsx",
     "Time Conversion Functions/TimeConversionFunctions.xlsx",
     "Custom Sequence Functions/Untitled.md",
     "Custom Sequence Functions/Custom Sequence Functions.txt",
@@ -183,10 +189,6 @@
     "Range Utilities/Range Utilities.txt",
     "Range Utilities/Range Utilities.xlsx",
     "Logic Utilities/README.md",
-    "Range Utilities/~$Logic Utilities.xlsx",
-    "Range Utilities/Set_Logic_Functions.txt",
-    "Range Utilities/Logic Utilities.xlsx",
-    "Range Utilities",
     "README.md"
   ]
 }
