@@ -1,0 +1,18 @@
+/* === Export Cleanup Mode === */
+.markdown-preview-view {
+  background: white !important;
+  color: black !important;
+}
+
+.cm-s-obsidian .cm-content {
+  background: white !important;
+  color: black !important;
+}
+
+/* Optional: Remove shadows, borders, extras */
+.markdown-preview-view,
+.cm-s-obsidian .cm-content {
+  box-shadow: none !important;
+  border: none !important;
+  padding: 1em !important;
+}

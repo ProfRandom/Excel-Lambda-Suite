@@ -101,8 +101,8 @@
 
 
 body {
-  --inline-title-color: #FFAA00 !important;
-  --inline-title-font: "Open Sans";
+  --inline-title-color: Peru !important;
+  --inline-title-font: "Verdana";
   /*--inline-title-line-height: var(--h1-line-height);*/
   --inline-title-size: 22pt;
   /*--inline-title-style: var(--h1-style);
@@ -121,31 +121,31 @@ body {
 
 /* Override for bold text in reading (preview) mode */
 .markdown-preview-view strong {
-  color: khaki !important;
+  color: SkyBlue !important;
   font-weight: bold !important;
 }
 
 /* Override for bold text in editor (live view) mode */
 .cm-s-obsidian span.cm-strong {
-  color: khaki !important;
+  color: SkyBlue !important;
   font-weight: bold !important;
 }
 
 /* Italic text in preview (reading mode) */
 .markdown-preview-view em {
-  color: aquamarine !important;
+  color: MediumSpringGreen !important;
   font-style: italic !important;
 }
 
 /* Italic text in editor (live edit mode) */
 .cm-s-obsidian span.cm-em {
-  color: aquamarine !important;
+  color: MediumSpringGreen !important;
   font-style: italic !important;
 }
 
 /* Edit mode: bold + italic = force bold color */
 .cm-s-obsidian span.cm-strong.cm-em {
-  color: khaki !important;  /* Use your bold color here */
+  color: SandyBrown !important;  /* Use your bold color here */
   font-weight: bold !important;
   font-style: italic !important;
 }
@@ -153,7 +153,7 @@ body {
 /* Handles both nesting orders */
 .markdown-preview-view strong em,
 .markdown-preview-view em strong {
-  color: khaki !important;
+  color: SandyBrown !important;
   font-weight: bold !important;
   font-style: italic !important;
 }
@@ -167,7 +167,7 @@ body {
 .cm-s-obsidian .cm-header-4,
 .cm-s-obsidian .cm-header-5,
 .cm-s-obsidian .cm-header-6 {
-  font-family: "Georgia" !important;
+  font-family: "Verdana" !important;
   font-weight: normal !important;
 }
 
@@ -178,69 +178,69 @@ body {
 .markdown-preview-view h4,
 .markdown-preview-view h5,
 .markdown-preview-view h6 {
-  font-family: "Georgia" !important;
+  font-family: "Verdana" !important;
   font-weight: normal !important;
 }
 
 /* H1 in preview (reading mode) */
 .markdown-preview-view h1 {
    font-size: 24pt !important; 
-  color: lightgreen !important;
+  color: gold !important;
 }
 
 /* H1 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-1 {
-  color: lightgreen !important;
+  color: gold !important;
 }
 
 /* H2 in preview (reading mode) */
 .markdown-preview-view h2 {
-  color: cornsilk !important;
+  color: DarkSeaGreen !important;
 }
 
 /* H2 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-2 {
-  color: cornsilk !important;
+  color: DarkSeaGreen !important;
 }
 
 /* H3 in preview (reading mode) */
 .markdown-preview-view h3 {
-  color: paleturquoise !important;
+  color: SkyBlue !important;
 }
 
 /* H3 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-3 {
-  color: paleturquoise !important;
+  color: SkyBlue !important;
 }
 
 /* H4 in preview (reading mode) */
 .markdown-preview-view h4 {
-  color: seashell !important;
+  color: Salmon !important;
 }
 
 /* H4 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-4 {
-  color: seashell !important;
+  color: Salmon !important;
 }
 
 /* H5 in preview (reading mode) */
 .markdown-preview-view h5 {
-  color: thistle !important;
+  color: RosyBrown !important;
 }
 
 /* H5 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-5 {
-  color: thistle !important;
+  color: RosyBrown !important;
 }
 
 /* H6 in preview (reading mode) */
 .markdown-preview-view h6 {
-  color: lightpink !important;
+  color: PeachPuff !important;
 }
 
 /* H6 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-6 {
-  color: lightpink !important;
+  color: PeachPuff !important;
 }
 
 */@media print {

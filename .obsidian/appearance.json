@@ -1,6 +1,7 @@
 {
   "enabledCssSnippets": [
-    "bold-override"
+    "bold-override",
+    "Colorful_Headers"
   ],
   "theme": "obsidian"
 }
