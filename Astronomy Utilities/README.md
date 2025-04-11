@@ -30,3 +30,36 @@ ASTRO_HAB_INDEX(0.25, 1.0)      → "U/I"
 - The piecewise logic models habitability as a smooth curve across both sides of the habitable zone.    
 - Can be adapted to different stellar types by changing the `nucleal_radius` input.    
 - Use for planetary classification, biozone diagnostics, or worldbuilding logic.
+
+---
+### `ASTRO_SPECTRAL_DISTRIBUTION([type], [count], [precision])`
+
+Returns a table showing the relative or scaled frequency distribution of stellar spectral classes (O, B, A, F, G, K, M).
+
+#### Parameters:
+- `type` *(optional)* — A spectral class to use as the baseline for scaling.
+- `count` *(optional)* — The number of stars to scale against (default = 1).
+- `precision` *(optional)* — Decimal precision for output (default = 3).
+
+#### Returns:
+A 2-column array:
+- Column 1: Spectral class letter
+- Column 2: Relative frequency (if `type` omitted) or scaled distribution (if `type` and `count` provided)
+
+#### Examples:
+```excel
+ASTRO_SPECTRAL_DISTRIBUTION("G", 100)
+→ {"O", 0; "B", 0.00125; "A", 0.00625; "F", 0.030303; "G", 0.076923; "K", 0.125; "M", 76.027}
+
+ASTRO_SPECTRAL_DISTRIBUTION()
+→ {"O", 0.0000003; "B", 0.00125; "A", 0.00625; "F", 0.030303; "G", 0.076923; "K", 0.125; "M", 0.760274}
+```
+
+#### Notes:
+
+- If `type` is omitted or invalid, the result reflects relative abundance (based on 1/frequency).    
+- If `type` is given, all other classes are scaled relative to its canonical frequency.  
+- This can simulate synthetic stellar populations or support galactic structure models.
+
+---
+
