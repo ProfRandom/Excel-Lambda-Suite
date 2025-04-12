@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Astronomy Utilities/README.md",
+                "file": "General Utilities/README.md",
                 "mode": "source",
                 "source": false
               },
@@ -170,9 +170,13 @@
   },
   "active": "f454087349fd3edb",
   "lastOpenFiles": [
-    "Astronomy Utilities/Astrometric_Functions~.txt",
+    "Range Utilities/README.md",
+    "Custom Sequence Functions/README.md",
     "Conversion Utilities/README.md",
+    "Summing Utilities/README.md",
+    "General Utilities/README.md",
     "Astronomy Utilities/README.md",
+    "Astronomy Utilities/Astrometric_Functions~.txt",
     "In development/~$Math_and_Geometry_Utils.xlsx",
     "Astronomy Utilities/Astronomy Utlities.xlsx",
     "Astronomy Utilities/~$Astronomy Utlities.xlsx",
@@ -183,15 +187,11 @@
     "In development/Astro Utilities/NUM_ONLY code explanation.txt",
     "In development/Astro Utilities",
     "In development/untitled folder",
-    "Number Notation Expansion Utilities/Number Notation Utlities.txt",
     "Number Notation Expansion Utilities/README.md",
     "Time Conversion Functions/README.md",
     "Conversions/README.md",
-    "Custom Sequence Functions/README.md",
     "Custom Sequence Functions/Untitled.md",
     "Custom Sequence Functions/Untitled 1.md",
-    "Range Utilities/README.md",
-    "Summing Utilities/README.md",
     "Logic Utilities/README.md",
     "README.md"
   ]
