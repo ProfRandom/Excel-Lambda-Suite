@@ -102,3 +102,58 @@ FORMTEXT(A1, 3) → "=TEXTJOIN(CHAR(10), TRUE, A1:A5)"
 - Mode 0 can be used to extract only function names (e.g., for classification).    
 - Mode 3 returns the raw Excel formula for debugging/logging.    
 - Great for creating custom **formula audit dashboards**, or building **self-documenting templates**.
+
+---
+### `FORMULA_TEXT(cell)`
+
+Returns a one-line, labeled version of the formula from a given cell, removing the leading equal sign and prepending the cell reference.
+
+#### Parameters:
+
+- `cell` _(required)_ — A reference to a cell containing a formula.
+    
+#### Returns:
+
+- A text string like `"B3:= RECIP(ROOT(PI(),3))"` showing the formula content in an easy-to-read display format.
+    
+#### Example:
+```excel
+FORMULA_TEXT(B3)               → "B3:= RECIP(1.414)"
+```
+#### Notes:
+
+- Ideal for audits, dashboards, printouts, and documenting named LAMBDA functions.    
+- This function does not inspect, modify, or validate the formula—it simply extracts and formats it.    
+- Equivalent to `CELL("address", ref) & ":= " & TEXTAFTER(FORMULATEXT(ref), "=")`.
+---
+### `ROUND_FIX(number, places, [as_text], [use_round])`
+
+Rounds or truncates a number to a specified number of decimal places, with optional string output to ensure fixed-width formatting and trailing zero preservation.
+
+#### Parameters:
+
+- `number` _(required)_ — The numeric value to process.    
+- `places` _(required)_ — Number of decimal places to retain.    
+- `as_text` _(optional)_ — If `TRUE`, returns the result as a text string with trailing zeros. Defaults to `FALSE`.    
+- `use_round` _(optional)_ — If `TRUE`, applies rounding. If omitted or `FALSE`, the number is truncated.
+    
+
+#### Returns:
+
+- A numeric or text-formatted version of the number, rounded or truncated to the desired precision.
+    
+#### Examples:
+
+```excel
+ROUND_FIX(PI(), 2)                 → 3.14
+ROUND_FIX(PI(), 3, TRUE)           → "3.141"
+ROUND_FIX(PI(), 4, TRUE, FALSE)    → "3.1415"
+ROUND_FIX(PI(), 12, FALSE)         → 3.141592654   // capped at 9 decimals
+ROUND_FIX(PI(), 12, TRUE)          → "3.141592653590"
+```
+
+#### Notes:
+
+- Excel’s numeric display is limited to ~9 decimal places. If `as_text` is `FALSE`, precision is capped to 9 to avoid display anomalies.    
+- Use `as_text = TRUE` to show exact decimal formatting with trailing zeros preserved.    
+- Useful for numeric display in reports, rounding constants, or formatting math outputs for consistent precision.

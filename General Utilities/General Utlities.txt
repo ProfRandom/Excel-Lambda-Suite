@@ -1,0 +1,197 @@
+/* RECIP:
+   Purpose:
+   Returns the reciprocal (multiplicative inverse) of a number.
+
+   Returns:
+   A single decimal value equal to 1 divided by the input.
+
+   Parameters:
+   - input (required): Any nonzero numeric value.
+
+   Notes:
+   - Returns `#DIV/0!` if input is zero.
+   - Useful for flipping fractions, converting rates (e.g., Hz ↔ seconds), or inverting ratios.
+
+   Example:
+     RECIP(4) → 0.25
+     RECIP(0.2) → 5
+*/
+
+
+RECIP = LAMBDA(input, 1 / input);
+
+/* FRAC:
+   Purpose:
+   Returns the fractional (non-integer) part of a number.
+
+   Returns:
+   A scalar decimal between 0 and 1 (or -1 and 0 if sign is preserved).
+
+   Parameters:
+   - input (required): The number to extract the fractional part from.
+   - mode (optional): Output mode (default = 0)
+       - 0: Always return positive fractional part
+       - 1: Preserve sign of input (e.g., -3.25 → -0.25)
+
+   Notes:
+   - Complements Excel’s TRUNC and QUOTIENT functions.
+   - Useful for detecting decimal remainders and analyzing offsets from whole values.
+   - Sign-preserving mode can indicate whether a value is just above or just below an integer.
+
+   Examples:
+   FRAC(-3.25)       → 0.25  
+   FRAC(-3.25, 1)    → -0.25
+*/
+
+
+FRAC = LAMBDA(input, [mode],
+    LET(
+        // Default mode to 0 if omitted or invalid
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+
+        // Compute fractional part by subtracting integer portion
+        frac_part, input - TRUNC(input),
+
+        // Return signed or absolute value depending on mode
+        IF(mode = 1, frac_part, ABS(frac_part))
+    )
+);
+
+/* ROOT:
+   Purpose:
+   Returns the x-th root of a number (or square root if no degree is specified).
+
+   Returns:
+   A real decimal number representing the root of `n`.
+
+   Parameters:
+   - n (required): The number to take the root of.
+   - x (optional): The root degree. Defaults to 2 (square root).
+
+   Notes:
+   - Rejects all negative input values for `n`, regardless of root.
+   - Mimics Excel's behavior (returns #NUM! if root would be complex).
+   - Use Excel’s `IMPOWER` or `IMSQRT` for complex number support.
+
+   Examples:
+   ROOT(16)       → 4
+   ROOT(27, 3)    → 3
+   ROOT(9, 0.5)   → 81
+   ROOT(-5, 3)    → #NUM!
+*/
+
+ROOT = LAMBDA(n, [x],
+    LET(
+        root_degree, IF(ISOMITTED(x), 2, x),
+        IF(n < 0,
+            SQRT(-1),  // Triggers #NUM! error for negative base
+            n ^ (1 / root_degree)
+        )
+    )
+);
+
+/* FORMULA_TEXT
+   --------------------------
+   Returns a one-line, labeled version of the formula in the given cell,
+   omitting the leading equal sign and prepending the cell reference.
+
+   Syntax:
+     FORMULA_TEXT(cell)
+
+   Parameters:
+     cell : A reference to a cell containing a formula.
+
+   Returns:
+     A single-line string in the format "A1:= FORMULA(...)"
+     Useful for auditing, documentation, dashboards, or teaching tools.
+
+   Examples:
+     FORMULA_TEXT(B3)  → "B3:= RECIP(ROOT(PI(),3))"
+     FORMULA_TEXT(C5)  → "C5:= ROUND_FIX(PI(),3)"
+
+   Notes:
+     - The result is equivalent to: CELL("address", cell) & ":= " & TEXTAFTER(FORMULATEXT(cell), "=")
+     - If the referenced cell does not contain a formula, an error will occur.
+     - This function does not evaluate or alter the formula—only formats it for display.
+*/
+
+FORMULA_TEXT=LAMBDA(
+  formula_cell,  // A reference to a cell containing a formula
+
+  LET(
+    raw, FORMULATEXT(formula_cell),                        // "=RECIP(ROOT(PI(),3))"
+    clean, TEXTAFTER(raw, "="),                            // "RECIP(ROOT(PI(),3))"
+    label, SUBSTITUTE(CELL("address", formula_cell), "$", "") & ":= ",
+    label & clean
+  )
+);
+
+
+/* ROUND_FIX
+   --------------------------
+   Rounds or truncates a number to a specified number of decimal places.
+   Optionally returns the result as a fixed-width text string, preserving trailing zeros.
+
+   Syntax:
+     ROUND_FIX(number, places, [as_text], [use_round])
+
+   Parameters:
+     number      : The numeric value to process.
+     places      : Number of decimal places to retain.
+     as_text     : Optional (default = FALSE). If TRUE, returns output as text (e.g., "3.140").
+     use_round   : Optional (default = FALSE). If TRUE, applies rounding. Otherwise, truncates.
+
+   Returns:
+     A number or text string representing the rounded or truncated value to fixed decimal places.
+
+   Examples:
+     ROUND_FIX(PI(), 2)                     → 3.14
+     ROUND_FIX(PI(), 3, TRUE)               → "3.141"
+     ROUND_FIX(PI(), 4, TRUE, FALSE)        → "3.1415"
+     ROUND_FIX(PI(), 12, FALSE)             → 3.141592654   (capped to 9 decimals)
+     ROUND_FIX(PI(), 12, TRUE)              → "3.141592653590"
+
+   Notes:
+     - Excel limits numeric display precision to ~9 decimal places. When as_text = FALSE,
+       output is capped at 9 digits for consistency.
+     - To display full precision or preserve trailing zeros, set as_text = TRUE.
+     - Supports both rounding and truncation modes.
+     - Ideal for formatting constants, visual display control, or ensuring clean outputs in reports.
+*/
+
+
+ROUND_FIX=LAMBDA(
+  number,         // Required: the number to round or truncate
+  places,         // Required: number of decimal places to retain
+  [as_text],      // Optional: if TRUE, return result as text with fixed decimal places
+  [use_round],    // Optional: if TRUE, round; if FALSE or omitted, truncate
+
+  LET(
+    n, N(number),                        // Ensure numeric input
+    raw_p, N(places),                   // Raw input for places
+    round_flag, IF(ISBLANK(use_round), FALSE, use_round),
+    return_text, IF(ISBLANK(as_text), FALSE, as_text),
+
+    // Excel only reliably displays up to 9 decimals as numeric
+    max_places, IF(return_text, raw_p, MIN(raw_p, 9)),
+
+    pwr_10, 10 ^ max_places,             // Power of 10 for rounding/truncation
+
+    // Perform rounding or truncation
+    result,
+      IF(round_flag,
+        ROUND(n, max_places),
+        TRUNC(n * pwr_10) / pwr_10
+      ),
+
+    // Optionally format as fixed-length string
+    final,
+      IF(return_text,
+        TEXT(result, "0." & REPT("0", max_places)),
+        result
+      ),
+
+    final
+  )
+);
+
