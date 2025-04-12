@@ -170,41 +170,7 @@ FILTERWILD = LAMBDA(array, find, [mode],
 );
 
 
-FORMTEXT = LAMBDA(input, [mode],
-    LET(
-        recpt, FORMULATEXT(input),
-        mode, IF(OR(ISOMITTED(mode), mode > 3), 0, mode),
-        checkval, ISNUMBER(SEARCH("(", recpt)),
-        cell_name, SUBSTITUTE(CELL("address", input),"$",""),
-        list, IF(
-            NOT(checkval),
-            recpt,
-            TEXTSPLIT(recpt, ")")
-        ),
-        result, IF(
-            checkval,
-            BYCOL(
-                list,
-                LAMBDA(x, TEXTBEFORE(x, "(", , , , ""))
-            ),
-            list
-        ),
-        collected, TEXTJOIN(
-            "",
-            ,
-            INDEX(result, SEQUENCE(COUNTA(result)))
-        ),
-        parenthetical, TEXTAFTER(TEXTBEFORE(CONCAT(cell_name, ":= ", SUBSTITUTE(collected, "=", "")), "("), " "),
-        output, SWITCH(
-            mode,
-            0, collected,
-            1, CONCAT(cell_name, ":= ", SUBSTITUTE(collected, "=", "")),
-            2, CONCAT(cell_name, ":= ", SUBSTITUTE(recpt, "=", "")),
-            3, parenthetical
-        ),
-        output
-    )
-);
+
 
 FORMAT_AS_LIST = LAMBDA(range, [format], [style], [sort], [mode],
     LET(

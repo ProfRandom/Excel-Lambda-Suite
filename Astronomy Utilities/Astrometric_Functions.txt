@@ -16,6 +16,23 @@ LET(
 );
 
 
+
+ASTRO_SPECTRAL_DISTRIBUTION = LAMBDA([anchor_class], [anchor_count], [decimal_places],
+    LET(
+        // === Default handling and normalization ===
+        anchor_class, IF(
+            OR(ISOMITTED(anchor_class), ISERROR(SEARCH(anchor_class, "OBAFGKM"))),
+            "$",  // Sentinel to indicate full baseline mode
+            UPPER(anchor_class)
+        ),
+
+        anchor_count, IF(ISOMITTED(anchor_count), 1, anchor_count),
+        decimal_places, IF(ISOMITTED(decimal_places), 3, decimal_places),
+
+
+
+
+
 SPECTRAL_CLASS_FREQ = LAMBDA([type], [count], [precision],
     LET(
         precision, IF(ISOMITTED(precision), 3, precision),
