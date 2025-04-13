@@ -187,3 +187,48 @@ Given normalized temperature `Tnorm` (i.e. `T = K / 5770` or derived):
 - Values are **not** intended for high-precision physical simulation, but are consistent with common worldbuilding or pedagogical references.
 
 ---
+### `ASTRO_PLANET_METRICS_FLAGGED(mode, param_1, param_2, [prec])`
+
+Calculates planetary mass, radius, density, surface gravity, and escape velocity from any two known values. Flags the two inputs in the output using a ➔ arrow.
+
+#### Parameters:
+
+- `mode` _(required)_: A string code indicating the two known input values. Supported values:
+    
+    - `"md"` = Mass and Density        
+    - `"mr"` = Mass and Radius        
+    - `"mg"` = Mass and Gravity        
+    - `"rd"` = Radius and Density        
+    - `"rg"` = Radius and Gravity        
+    - `"dg"` = Density and Gravity        
+    - `"dv"` = Density and Escape Velocity        
+    - `"gv"` = Gravity and Escape Velocity        
+    - `"mv"` = Mass and Escape Velocity        
+    - `"rv"` = Radius and Escape Velocity        
+- `param_1` _(required)_: First known value, based on the mode string    
+- `param_2` _(required)_: Second known value, based on the mode string    
+- `prec` _(optional)_: Decimal precision for output rounding (default = 5)
+    
+#### Returns:
+
+- A two-column array:  
+    Column 1: Labeled output variable names (`"M"`, `"R"`, `"d"`, `"g"`, `"v"`)  
+    Column 2: Computed values, with the two user-supplied inputs marked with a ➔ arrow
+    
+#### Description:
+
+This function serves as a comprehensive planetary parameter solver. Given any valid pair of two known values, it computes the remaining three using standard physics relationships (density, gravity, and escape velocity all derive from mass and radius).
+
+Arrows (`➔`) are added to the output to indicate which values were supplied directly by the user, making it ideal for instructional purposes, sanity checks, or parametric sensitivity analysis.
+
+#### Example:
+
+```excel
+`ASTRO_PLANET_METRICS_FLAGGED("dg", 1, 2)`
+```
+
+#### Notes:
+
+- All calculations assume Earth-relative units (e.g., M = 1 for Earth-mass).    
+- Flagging is done at the label level; actual values are unaffected.    
+- For simplified output without flags, use `ASTRO_PLANET_METRICS`.
