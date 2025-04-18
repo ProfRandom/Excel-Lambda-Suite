@@ -1,0 +1,98 @@
+GETDIGITS = LAMBDA(input,
+    LET(
+        output, TEXTJOIN("", TRUE, IFERROR(--MID(input, ROW(INDIRECT("1:" & LEN(input))), 1), "")),
+        return, IF(output = "", "#NONE!", output),
+        return
+    )
+);
+
+GETCHARS = LAMBDA(input,
+    LET(
+        output, TEXTJOIN(
+            "",
+            TRUE,
+            IF(
+                ISERROR(--MID(input, ROW(INDIRECT("1:" & LEN(input))), 1)),
+                MID(input, ROW(INDIRECT("1:" & LEN(input))), 1),
+                ""
+            )
+        ),
+        return, IF(output = "", "#NONE!", output),
+        return
+    )
+);
+
+SPLITSTRING = LAMBDA(input, [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+        output, IF(
+            mode = 0,
+            TRANSPOSE(MID(input, SEQUENCE(LEN(input)), 1)),
+            MID(input, SEQUENCE(LEN(input)), 1)
+        ),
+        output
+    )
+);
+
+UNIQUECHARS = LAMBDA(input, [style], [mode],
+    LET(
+        mode, if((ISOMITTED(mode))+(mode<0)+(mode>2), 0, mode),
+        style, if((ISOMITTED(style))+(style<0)+(style>2), 0, style),
+        strip, SUBSTITUTE(input, " ", ""),
+        arr, mid(strip,sequence(len(strip)),1),
+        styled, switch(style,
+            0, arr,
+            1, lower(arr),
+            2, upper(arr)
+            ),
+        result, switch(mode,
+            0, concat(styled),
+            1, concat(unique(styled)),
+            2, concat(sort(unique(styled)))
+            ),
+        result
+    )
+);
+
+HASCAP = LAMBDA(word,
+    LET(
+        count, LEN(word),
+        subword, RIGHT(word, count - 1),
+        letter, LEFT(subword, 1),
+        test, AND((CODE(letter) >= 65), (CODE(letter) <= 91)),
+        IF(((test = FALSE) * (LEN(subword) - 1 > 0)), HASCAP(subword), test)
+    )
+);
+
+TEXTBETWEEN = LAMBDA(input, delim1, [delim2], [includeDelims],
+    LET(
+        delim2, IF(ISOMITTED(delim2), delim1, delim2),
+        includeDelims, IF(ISOMITTED(includeDelims), FALSE, includeDelims),
+        startPos, FIND(delim1, input),
+        endPos, FIND(delim2, input, startPos + LEN(delim1)),
+        betweenText, MID(input, startPos + LEN(delim1), endPos - startPos - LEN(delim1)),
+        result, IF(includeDelims, delim1 & betweenText & delim2, betweenText),
+        output, IFERROR(result, "#DELIM!"),
+        output
+    )
+);
+
+STRIP_CHARS = LAMBDA(input,
+    IF(ISERROR(SEARCH("(", input)),
+        input,
+        LET(
+            first_find, SEARCH("(", input),
+            second_find, SEARCH(")", input),
+            new_string, LEFT(input, first_find - 1) & MID(input, second_find + 1, LEN(input)),
+            STRIP_CHARS(new_string)
+        )
+    )
+);
+
+COUNT_INSTANCE = LAMBDA(input, target,
+    LET(
+        target, IF(LEN(target) > 1, LEFT(target, 1), target),
+        output, SUM(--ISNUMBER(SEARCH(MID(input, SEQUENCE(LEN(input)), 1), target))),
+        output
+    )
+);

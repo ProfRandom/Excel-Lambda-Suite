@@ -1,0 +1,196 @@
+/* LIST_REMOVE_BLANKS
+   Purpose:
+   Removes blank or empty entries from a single-column list.
+*/
+LIST_REMOVE_BLANKS = LAMBDA(col, FILTER(col, col <> ""));
+
+
+/* LIST_REMOVE_BLANK_ROWS
+   Purpose:
+   Removes entirely blank rows from a table (multi-column range).
+*/
+LIST_REMOVE_BLANK_ROWS = LAMBDA(tbl,
+  LET(
+    keep, BYROW(tbl, LAMBDA(r, SUM(LEN(TRIM(r))) > 0)),
+    FILTER(tbl, keep)
+  )
+);
+
+
+/* LIST_FILTER_WILDCARD
+   Purpose:
+   Filters items from an array using wildcards or partial matches.
+
+   Inputs:
+   - array: list to filter
+   - find: search string
+   - mode (optional): 0 = anywhere (default), 1 = starts with, 2 = contains (strict wildcard)
+*/
+LIST_FILTER_WILDCARD = LAMBDA(array, find, [mode],
+  LET(
+    mode, IF(OR(ISOMITTED(mode), mode > 2), 0, mode),
+    output, IFERROR(
+      SWITCH(
+        mode,
+        0, FILTER(array, ISNUMBER(SEARCH(find, array))),
+        2, FILTER(array, (BYROW(array, LAMBDA(x, XLOOKUP("*" & find, x, x, "", 2))) <> "")),
+        1, FILTER(array, (BYROW(array, LAMBDA(x, XLOOKUP(find & "*", x, x, "", 2))) <> ""))
+      ),
+      "None"
+    ),
+    output
+  )
+);
+
+
+/* LIST_DUPES
+   Purpose:
+   Returns items that appear more than once in a list, along with counts.
+*/
+LIST_DUPES = LAMBDA(list,
+  LET(
+    count_list, UNIQUE(BYROW(list, LAMBDA(x, x & ": " & COUNTIF(list, x)))),
+    output, SORT(FILTER(count_list, VALUE(TEXTAFTER(count_list, ": ")) > 1)),
+    output
+  )
+);
+
+
+/* LIST_DUPES_LABELED
+   Purpose:
+   Returns duplicate entries with labeled row positions.
+*/
+LIST_DUPES_LABELED = LAMBDA(list,
+  LET(
+    count_list, UNIQUE(BYROW(list, LAMBDA(x, x & ": " & COUNTIF(list, x)))),
+    output, SORT(FILTER(count_list, VALUE(TEXTAFTER(count_list, ": ")) > 1)),
+    BYROW(output, LAMBDA(x, MATCH(x, output) & " " & x))
+  )
+);
+
+
+/* LIST_COUNTEACH
+   Purpose:
+   Counts how many times each unique item appears in the list.
+*/
+LIST_COUNTEACH = LAMBDA(range,
+  LET(
+    count_list, SORT(UNIQUE(BYROW(range, LAMBDA(x, x & ": " & COUNTIF(range, x))))),
+    count_list
+  )
+);
+
+
+/* LIST_COUNTEACH_X
+   Purpose:
+   Extended version of COUNTEACH with optional sorting and format mode.
+
+   Inputs:
+   - range: array to count
+   - sortMode (optional): 0 = by label, 1 = by count (desc)
+   - mode (optional): 0 = value+count, 1 = values only
+*/
+LIST_COUNTEACH_X = LAMBDA(range, [sortMode], [mode],
+  LET(
+    sortMode, IF(ISOMITTED(sortMode), 0, sortMode),
+    mode, IF(ISOMITTED(mode), 0, mode),
+    values, UNIQUE(TOROW(range, 1)),
+    counts, MAP(values, LAMBDA(x, COUNTIF(range, x))),
+    sorted, SWITCH(
+      sortMode,
+      0, SORTBY(values, values, 1),
+      1, SORTBY(values, counts, -1),
+      values
+    ),
+    sortedCounts, XLOOKUP(sorted, values, counts),
+    SWITCH(
+      mode,
+      1, sorted,
+      0, CHOOSE({1, 2}, sorted, sortedCounts)
+    )
+  )
+);
+
+
+/* LIST_FORMAT_AS_TEXT
+   Purpose:
+   Formats a list as a comma- or semicolon-separated string.
+
+   Inputs:
+   - range: list or array to format
+   - format (optional): 0 = commas, 1 = semicolons
+   - style (optional): 0 = with braces, 1 = plain
+   - sort (optional): 0 = none, 1 = sort
+   - mode (optional): 0 = all items, 1 = unique only
+*/
+LIST_FORMAT_AS_TEXT = LAMBDA(range, [format], [style], [sort], [mode],
+  LET(
+    style, IF(OR(ISOMITTED(style), style > 1), 0, style),
+    format, IF(OR(ISOMITTED(format), format > 1), 0, format),
+    mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+    sort, IF(OR(ISOMITTED(sort), sort > 1), 0, sort),
+    separator, IF(format = 0, ", ", "; "),
+    list, SWITCH(mode, 0, TOCOL(range, 3), 1, UNIQUE(TOCOL(range, 3))),
+    sorted, SWITCH(sort, 0, list, 1, SORT(list)),
+    output, SWITCH(style, 0, "{" & TEXTJOIN(separator, , sorted) & "}", 1, TEXTJOIN(separator, , sorted)),
+    output
+  )
+);
+
+
+/* LIST_COPY_REVERSE
+   Purpose:
+   Reverses a list vertically (default) or horizontally.
+   mode = 0 = vertical (default), 1 = horizontal (skips last item)
+*/
+LIST_COPY_REVERSE = LAMBDA(range, [mode],
+  LET(
+    mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+    listlen, IF(mode = 0, COUNTA(range), COUNTA(range) - 1),
+    reversed, INDEX(range, SEQUENCE(listlen, , listlen, -1)),
+    reversed
+  )
+);
+
+
+/* LIST_REPEAT_VALUES
+   Purpose:
+   Repeats each item in a list a specified number of times.
+*/
+LIST_REPEAT_VALUES = LAMBDA(inputRange, repeatCount,
+  MAKEARRAY(COUNTA(inputRange) * repeatCount, 1,
+    LAMBDA(row, col, INDEX(inputRange, CEILING(row / repeatCount, 1)))
+  )
+);
+
+
+/* LIST_SEQUENCE_REPEAT
+   Purpose:
+   Creates a repeated sequence from start to end values.
+*/
+LIST_SEQUENCE_REPEAT = LAMBDA(start, end, repeat,
+  LET(
+    len, ABS(start - end) + 1,
+    list, SEQUENCE(len,,start,1),
+    arr, CONCAT(BYROW(list, LAMBDA(x, REPT(CONCAT(x, ","), repeat)))),
+    VALUE(TOCOL(TEXTSPLIT(LEFT(arr, LEN(arr) - 1), ",")))
+  )
+);
+
+
+/* LIST_SPLIT_DIGITS
+   Purpose:
+   Splits the digits from a string and returns them as a numeric array.
+
+   Inputs:
+   - input: string containing digits
+   - mode (optional): 0 = vertical (default), 1 = horizontal
+*/
+LIST_SPLIT_DIGITS = LAMBDA(input, [mode],
+  LET(
+    mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+    stripped, SUBSTITUTE(input, ".", ""),
+    output, IFERROR(VALUE(MID(stripped, SEQUENCE(LEN(stripped)), 1)), "0"),
+    SWITCH(mode, 1, output, 0, TRANSPOSE(output))
+  )
+);
