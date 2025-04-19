@@ -1,98 +1,389 @@
-GETDIGITS = LAMBDA(input,
+/* STR_GETDIGITS
+   Purpose:
+   Extracts all digit characters (0–9) from a text string and returns them as a single string.
+
+   Behavior:
+   - Returns a string containing only the digits from the input text.
+   - If no digits are found, returns a fallback value (optional).
+   - Defaults to "#NONE!" if no digits are found and no fallback is provided.
+   - Preserves digit order; ignores non-numeric characters (including decimal points, symbols, etc.)
+
+   Inputs:
+   - input      : Text string to parse for digits.
+   - [fallback] : Optional. Value to return if no digits are found (default: "#NONE!")
+
+   Example:
+   STR_GETDIGITS("Room 42B")          → "42"
+   STR_GETDIGITS("Code: abc")        → "#NONE!"
+   STR_GETDIGITS("abc", "")          → ""
+*/
+
+STR_GETDIGITS = LAMBDA(input, [fallback],
     LET(
-        output, TEXTJOIN("", TRUE, IFERROR(--MID(input, ROW(INDIRECT("1:" & LEN(input))), 1), "")),
-        return, IF(output = "", "#NONE!", output),
-        return
+        // Break the input into an array of individual characters
+        arr_chars, MID(input, SEQUENCE(LEN(input)), 1),
+
+        // Keep only those characters that are valid digits (0–9)
+        arr_digits, IF(ISNUMBER(VALUE(arr_chars)), arr_chars, ""),
+
+        // Concatenate the remaining digits into a single string
+        result, TEXTJOIN("", TRUE, arr_digits),
+
+        // Return fallback if result is empty
+        IF(result = "", IF(ISOMITTED(fallback), "#NONE!", fallback), result)
     )
 );
 
-GETCHARS = LAMBDA(input,
+
+/* STR_GETCHARS
+   Purpose:
+   Extracts all non-digit characters from a text string and returns them as a single string.
+
+   Behavior:
+   - Returns a string containing only characters that are *not* numeric digits (0–9).
+   - Preserves character order.
+   - If no non-digit characters remain, returns fallback value (default: "#NONE!")
+
+   Inputs:
+   - input      : Text string to process.
+   - [fallback] : Optional. Value to return if all characters are digits (default: "#NONE!")
+
+   Example:
+   STR_GETCHARS("abc123")        → "abc"
+   STR_GETCHARS("404")           → "#NONE!"
+   STR_GETCHARS("404", "")       → ""
+*/
+
+STR_GETCHARS = LAMBDA(input, [fallback],
     LET(
-        output, TEXTJOIN(
-            "",
-            TRUE,
-            IF(
-                ISERROR(--MID(input, ROW(INDIRECT("1:" & LEN(input))), 1)),
-                MID(input, ROW(INDIRECT("1:" & LEN(input))), 1),
-                ""
-            )
+        // Break input into array of single characters
+        arr_chars, MID(input, SEQUENCE(LEN(input)), 1),
+
+        // Keep only characters that fail numeric coercion
+        arr_nondigits, IF(ISNUMBER(VALUE(arr_chars)), "", arr_chars),
+
+        // Combine remaining characters into a single string
+        result, TEXTJOIN("", TRUE, arr_nondigits),
+
+        // Return fallback if no non-digit characters were found
+        IF(result = "", IF(ISOMITTED(fallback), "#NONE!", fallback), result)
+    )
+);
+
+/* STR_FILTERCHARS
+   Purpose:
+   Filters characters from a string based on a named mode.
+
+   Modes:
+   "DGT" or "DIG" → Keep only digit characters (0–9)
+   "LTR"          → Keep only letter characters (A–Z, a–z)
+   "ELS"          → Keep only characters that are NOT digits, letters, or whitespace
+
+   Behavior:
+   - Characters are evaluated one-by-one using ASCII codes.
+   - Whitespace includes standard spaces, tabs, line breaks, NBSP, ZWSP, and NNBSP.
+   - If no characters match the mode, returns fallback value (default: "#NONE!")
+
+   Inputs:
+   - input      : Text string to process.
+   - [mode]     : Filtering mode (default: "DGT")
+   - [fallback] : Optional value to return if result is empty (default: "#NONE!")
+
+   Example:
+   STR_FILTERCHARS("abc123!? ", "ELS") → "!?"
+*/
+
+STR_FILTERCHARS = LAMBDA(input, [mode], [fallback],
+    LET(
+        // Normalize mode input
+        mode, IF(ISOMITTED(mode), "DGT", UPPER(mode)),
+
+        // Break string into array of characters
+        arr_chars, MID(input, SEQUENCE(LEN(input)), 1),
+        arr_code, CODE(arr_chars),
+
+        // Logic flags
+        arr_isDigit, (arr_code >= 48) * (arr_code <= 57),
+        arr_isUpper, (arr_code >= 65) * (arr_code <= 90),
+        arr_isLower, (arr_code >= 97) * (arr_code <= 122),
+        arr_isLetter, arr_isUpper + arr_isLower,
+        arr_isWhitespace,
+            (arr_code = 32) + (arr_code = 9) + (arr_code = 160) +
+            (arr_code = 10) + (arr_code = 13) +
+            (arr_chars = UNICHAR(8203)) + (arr_chars = UNICHAR(8239)),
+
+        // Filter characters based on mode
+        arr_filtered, SWITCH(
+            mode,
+            "DGT", IF(arr_isDigit, arr_chars, ""),
+            "DIG", IF(arr_isDigit, arr_chars, ""),
+            "LTR", IF(arr_isLetter, arr_chars, ""),
+            "ELS", IF(NOT(arr_isDigit + arr_isLetter + arr_isWhitespace), arr_chars, ""),
+            arr_chars // fallback mode: return original string unfiltered
         ),
-        return, IF(output = "", "#NONE!", output),
-        return
+
+        // Join and finalize output
+        result, TEXTJOIN("", TRUE, arr_filtered),
+        IF(result = "", IF(ISOMITTED(fallback), "#NONE!", fallback), result)
     )
 );
 
-SPLITSTRING = LAMBDA(input, [mode],
+/* STR_SANITIZE
+   Purpose:
+   Replaces problematic or invisible whitespace characters with a standard ASCII space character (CHAR(32)).
+   This is useful for normalizing copy-pasted or imported text from browsers, PDFs, or systems like Banner.
+
+   Characters replaced with " " (CHAR(32)):
+   - CHAR(9)    : Tab
+   - CHAR(10)   : Line Feed (LF)
+   - CHAR(13)   : Carriage Return (CR)
+   - CHAR(160)  : Non-breaking Space (NBSP)
+   - CHAR(8203) : Zero-width Space (ZWSP)
+   - CHAR(8239) : Narrow No-break Space (NNBSP)
+
+   Input:
+   - text : The string to sanitize
+
+   Output:
+   - A string with all problematic whitespace replaced by normal spaces
+
+   Example:
+   STR_SANITIZE_WHITESPACE("hello" & CHAR(160) & "world") → "hello world"
+*/
+
+STR_SANITIZE = LAMBDA(text,
     LET(
-        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
-        output, IF(
-            mode = 0,
-            TRANSPOSE(MID(input, SEQUENCE(LEN(input)), 1)),
-            MID(input, SEQUENCE(LEN(input)), 1)
+        step1, SUBSTITUTE(text, CHAR(160), " "),
+        step2, SUBSTITUTE(step1, CHAR(9), " "),
+        step3, SUBSTITUTE(step2, CHAR(10), " "),
+        step4, SUBSTITUTE(step3, CHAR(13), " "),
+        step5, SUBSTITUTE(step4, UNICHAR(8203), " "),
+        step6, SUBSTITUTE(step5, UNICHAR(8239), " "),
+        step6
+    )
+);
+
+
+/* STR_SPLITCHARS
+   Purpose:
+   Splits a text string into its individual characters and returns them
+   as either a column (vertical) or row (horizontal) array.
+
+   Modes:
+   "C" (default) – column output (vertical array)
+   "R"           – row output (horizontal array)
+
+   Inputs:
+   - input : Text string to split into characters
+   - [mode]: Optional. "C" for column, "R" for row (default: "C")
+
+   Examples:
+   STR_SPLITCHARS("abc")        → {"a"; "b"; "c"}
+   STR_SPLITCHARS("abc", "R")   → {"a", "b", "c"}
+*/
+
+STR_SPLITCHARS = LAMBDA(input, [mode],
+    LET(
+        mode, IF(ISOMITTED(mode), "R", UPPER(mode)),
+        arr_chars, MID(input, SEQUENCE(LEN(input)), 1),
+        IF(mode = "C", arr_chars, TRANSPOSE(arr_chars))
+    )
+)
+;
+
+/* STR_UNIQUECHARS
+   Purpose:
+   Returns the unique characters from a string, with optional case normalization and sorting.
+
+   Inputs:
+   - input  : Text string to analyze
+   - [style]: Optional. Case control (default: "RAW")
+       "RAW" = preserve original case
+       "LO"  = convert to lowercase
+       "UP"  = convert to uppercase
+
+   - [mode] : Optional. Deduplication control (default: "ALL")
+       "ALL" = keep all characters, including duplicates
+       "UNS" = unique characters in original order
+       "SRT" = sorted unique characters
+
+   Behavior:
+   - Removes all spaces before processing
+   - Case-insensitive parameter values (e.g., "lo", "Lo", "LO" all valid)
+   - Useful for character set audits, alphabet extraction, or deduplication tasks
+
+   Example:
+   STR_UNIQUECHARS("banana", "UP", "SRT") → "ABN"
+*/
+
+STR_UNIQUECHARS = LAMBDA(input, [style], [mode],
+    LET(
+        // Normalize style and mode inputs to uppercase
+        style, IF(ISOMITTED(style), "RAW", UPPER(style)),
+        mode, IF(ISOMITTED(mode), "ALL", UPPER(mode)),
+
+        // Remove spaces and split into array of characters
+        stripped, SUBSTITUTE(input, " ", ""),
+        arr_chars, MID(stripped, SEQUENCE(LEN(stripped)), 1),
+
+        // Apply case style
+        arr_styled, SWITCH(
+            style,
+            "LO", LOWER(arr_chars),
+            "UP", UPPER(arr_chars),
+            arr_chars
         ),
-        output
-    )
-);
 
-UNIQUECHARS = LAMBDA(input, [style], [mode],
-    LET(
-        mode, if((ISOMITTED(mode))+(mode<0)+(mode>2), 0, mode),
-        style, if((ISOMITTED(style))+(style<0)+(style>2), 0, style),
-        strip, SUBSTITUTE(input, " ", ""),
-        arr, mid(strip,sequence(len(strip)),1),
-        styled, switch(style,
-            0, arr,
-            1, lower(arr),
-            2, upper(arr)
-            ),
-        result, switch(mode,
-            0, concat(styled),
-            1, concat(unique(styled)),
-            2, concat(sort(unique(styled)))
-            ),
+        // Apply deduplication/sorting mode
+        result, SWITCH(
+            mode,
+            "UNS", CONCAT(UNIQUE(arr_styled)),
+            "SRT", CONCAT(SORT(UNIQUE(arr_styled))),
+            CONCAT(arr_styled) // default: ALL
+        ),
+
         result
     )
-);
+)
+;
 
-HASCAP = LAMBDA(word,
+/* STR_HASCAP_AFTERFIRST
+   Purpose:
+   Returns TRUE if a string contains an uppercase letter *after* the first character.
+   Useful for detecting camelCase names, prefixes, or embedded proper fragments in strings.
+
+   Input:
+   - word : Text string (usually a name)
+
+   Output:
+   - TRUE if there is a capital letter beyond the first character; FALSE otherwise
+
+   Example:
+   STR_HASCAP_AFTERFIRST("vanCamp") → TRUE
+   STR_HASCAP_AFTERFIRST("Smith")   → FALSE
+   STR_HASCAP_AFTERFIRST("DeLaRosa") → TRUE
+*/
+
+STR_HASCAP_AFTERFIRST = LAMBDA(word,
     LET(
         count, LEN(word),
         subword, RIGHT(word, count - 1),
         letter, LEFT(subword, 1),
-        test, AND((CODE(letter) >= 65), (CODE(letter) <= 91)),
-        IF(((test = FALSE) * (LEN(subword) - 1 > 0)), HASCAP(subword), test)
+        code, CODE(letter),
+        test, AND(code >= 65, code <= 90),
+        IF(AND(NOT(test), LEN(subword) > 1), STR_HASCAP_AFTERFIRST(subword), test)
     )
-);
+)
+;
 
-TEXTBETWEEN = LAMBDA(input, delim1, [delim2], [includeDelims],
+
+/* STR_TEXTBETWEEN
+   Purpose:
+   Extracts the substring between two delimiters.
+   Supports optional inclusion of the delimiters and defaults to symmetric matching.
+
+   Inputs:
+   - input         : Full text string to search
+   - delim1        : Starting delimiter
+   - [delim2]      : Optional. Ending delimiter (defaults to delim1)
+   - [includeDelims]: Optional. TRUE to include both delimiters in output (default: FALSE)
+
+   Behavior:
+   - If either delimiter is not found, returns "#DELIM!"
+   - Only extracts the first matching occurrence
+   - Case-sensitive delimiter matching
+   - Symmetric behavior if only one delimiter provided
+
+   Examples:
+   STR_TEXTBETWEEN("A [target] B", "[", "]")        → "target"
+   STR_TEXTBETWEEN("A [target] B", "[", "]", TRUE)  → "[target]"
+   STR_TEXTBETWEEN("No closing brace here", "[")    → "#DELIM!"
+*/
+
+STR_TEXTBETWEEN = LAMBDA(input, delim1, [delim2], [includeDelims],
     LET(
         delim2, IF(ISOMITTED(delim2), delim1, delim2),
         includeDelims, IF(ISOMITTED(includeDelims), FALSE, includeDelims),
+
         startPos, FIND(delim1, input),
         endPos, FIND(delim2, input, startPos + LEN(delim1)),
-        betweenText, MID(input, startPos + LEN(delim1), endPos - startPos - LEN(delim1)),
-        result, IF(includeDelims, delim1 & betweenText & delim2, betweenText),
+
+        midText, MID(input, startPos + LEN(delim1), endPos - startPos - LEN(delim1)),
+
+        result, IF(includeDelims, delim1 & midText & delim2, midText),
         output, IFERROR(result, "#DELIM!"),
         output
     )
-);
+)
+;
 
-STRIP_CHARS = LAMBDA(input,
+/* STR_REMOVE_ENCLOSED
+   Purpose:
+   Recursively removes all substrings enclosed in parentheses, including the parentheses themselves.
+
+   Inputs:
+   - input : Text string potentially containing one or more (...) structures
+
+   Behavior:
+   - Searches for the first "(" and ")" pair
+   - Removes the enclosed substring including the delimiters
+   - Repeats recursively until no parentheses remain
+   - Does not handle nested parentheses correctly (i.e., treats them as flat pairs)
+
+   Example:
+   STR_REMOVE_ENCLOSED("Hello (world), this is (Myndhre)") → "Hello , this is "
+   STR_REMOVE_ENCLOSED("Name (P)")                         → "Name "
+
+   Limitations:
+   - Assumes well-formed input (i.e., every open paren has a matching close)
+   - Not intended for nested or mismatched structures
+
+   See also:
+   - STR_TEXTBETWEEN for extraction, not removal
+   - STR_SANITIZE_WHITESPACE for non-structural cleaning
+*/
+
+STR_REMOVE_ENCLOSED = LAMBDA(input,
     IF(ISERROR(SEARCH("(", input)),
         input,
         LET(
             first_find, SEARCH("(", input),
             second_find, SEARCH(")", input),
-            new_string, LEFT(input, first_find - 1) & MID(input, second_find + 1, LEN(input)),
-            STRIP_CHARS(new_string)
+            new_string,
+                LEFT(input, first_find - 1) &
+                MID(input, second_find + 1, LEN(input)),
+            STR_REMOVE_ENCLOSED(new_string)
         )
     )
-);
+)
+;
 
-COUNT_INSTANCE = LAMBDA(input, target,
+/* STR_COUNTCHAR
+   Purpose:
+   Counts how many times a given character appears in a string.
+
+   Inputs:
+   - input  : Text string to search
+   - target : Character to count (only the first character is used if input is longer)
+
+   Behavior:
+   - Case-sensitive comparison
+   - Strips input into characters and compares each to the target
+   - Returns the count of exact matches
+
+   Examples:
+   STR_COUNTCHAR("banana", "a") → 3
+   STR_COUNTCHAR("banana", "n") → 2
+   STR_COUNTCHAR("banana", "na") → 3 (only the first char "n" is used)
+*/
+
+STR_COUNTCHAR = LAMBDA(input, target,
     LET(
-        target, IF(LEN(target) > 1, LEFT(target, 1), target),
-        output, SUM(--ISNUMBER(SEARCH(MID(input, SEQUENCE(LEN(input)), 1), target))),
-        output
+        char, LEFT(target, 1),
+        arr_chars, MID(input, SEQUENCE(LEN(input)), 1),
+        matches, arr_chars = char,
+        result, SUM(--matches),
+        result
     )
-);
+)
+;
