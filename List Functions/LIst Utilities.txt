@@ -110,37 +110,31 @@ LIST_FILTER_WILDCARD = LAMBDA(array, find, [mode],
 
 /* LIST_DUPES_TABLE
    Purpose:
-   Returns a two-column array of values that appear more than once in the list,
+   Returns a two-column array of values that appear more than once in a list,
    along with their counts.
 
    Inputs:
-   - list : A 1D array or range of values
+   - list : A 1D or 2D range of values
 
    Behavior:
-   - Counts occurrences of each unique value
-   - Returns only those with count > 1
+   - Flattens the input to a single-column list
+   - Counts each unique value
+   - Filters only those with a count > 1
    - Output format: {value, count}
 
-   Examples:
-   LIST_DUPES_TABLE(A1:A20) → 
-   {"apple", 2;
-    "banana", 3}
+   Example:
+   LIST_DUPES_TABLE(A1:C10) →
+     {"apple", 2;
+      "banana", 3}
 */
 
 LIST_DUPES_TABLE = LAMBDA(list,
   LET(
-    // Unique list of items
-    arr_unique, UNIQUE(list),
-
-    // Count how many times each item appears
-    arr_counts, MAP(arr_unique, LAMBDA(x, COUNTIF(list, x))),
-
-    // Combine into a 2-column array
+    flat, TOCOL(list, 3),
+    arr_unique, UNIQUE(flat),
+    arr_counts, MAP(arr_unique, LAMBDA(x, COUNTIF(flat, x))),
     arr_dupes, HSTACK(arr_unique, arr_counts),
-
-    // Filter only those with count > 1
     output, FILTER(arr_dupes, INDEX(arr_dupes,,2) > 1),
-
     output
   )
 )
@@ -387,4 +381,361 @@ LIST_SPLIT_DIGITS = LAMBDA(input, [mode],
 )
 ;
 
+/* LIST_FROM_STRING
+   Purpose:
+   Converts a delimited text string into a list (vertical or horizontal array).
 
+   Inputs:
+   - text      : The input string to split
+   - delimiter : The character or string used to separate values
+   - [mode]    : Optional. Output orientation
+       0 (default) = vertical array
+       1 = horizontal array
+
+   Behavior:
+   - Uses TEXTSPLIT to parse the input into values
+   - Supports horizontal or vertical output shape
+   - Trims and preserves order of values
+
+   Examples:
+   LIST_FROM_STRING("apple,banana,carrot", ",")    → {"apple"; "banana"; "carrot"}
+   LIST_FROM_STRING("1;2;3;4", ";", 1)             → {1, 2, 3, 4}
+
+   See also:
+   - LIST_FORMAT_AS_STRING (inverse operation)
+   - STR_SPLITCHARS (character-level splitting)
+*/
+
+LIST_FROM_STRING = LAMBDA(text, delimiter, [mode],
+  LET(
+    mode, IF(OR(ISOMITTED(mode), mode = 0), "C", "R"),
+    split, TEXTSPLIT(text, delimiter),
+    IF(mode = "R", split, TRANSPOSE(split))
+  )
+)
+;
+
+/* LIST_ENUMERATE
+   Purpose:
+   Returns a two-column array pairing each item in a list with its index.
+
+   Inputs:
+   - list : A vertical or horizontal array of values
+
+   Output:
+   - A two-column array:
+       Column 1 = index (1-based)
+       Column 2 = corresponding value from the list
+
+   Behavior:
+   - Preserves the order of items
+   - Automatically flattens the input to a single column for enumeration
+
+   Examples:
+   LIST_ENUMERATE({"A", "B", "C"}) →
+     {1, "A";
+      2, "B";
+      3, "C"}
+
+   LIST_ENUMERATE(HSTACK("apple", "banana", "cherry")) →
+     {1, "apple";
+      2, "banana";
+      3, "cherry"}
+*/
+
+LIST_ENUMERATE = LAMBDA(list,
+  LET(
+    arr, TOCOL(list, 3),
+    count, ROWS(arr),
+    indexes, SEQUENCE(count),
+    HSTACK(indexes, arr)
+  )
+)
+;
+
+/* LIST_ZIP
+   Purpose:
+   Combines two lists into a two-column array, pairing elements by position.
+
+   Inputs:
+   - arr_1 : First array or list (vertical or horizontal)
+   - arr_2 : Second array or list (vertical or horizontal)
+   - [mode]: Optional. Pairing mode:
+       "PAD" (default) = pad shorter array with NA() to match longer
+       "TRC"           = truncate both arrays to shortest length
+
+   Behavior:
+   - Automatically flattens both arrays into columns
+   - Preserves order
+   - Ensures both arrays are the same length using selected mode
+
+   Examples:
+   LIST_ZIP({"A", "B"}, {1, 2}) →
+     {"A", 1;
+      "B", 2}
+
+   LIST_ZIP({"A", "B", "C"}, {1, 2}, "PAD") →
+     {"A", 1;
+      "B", 2;
+      "C", #N/A}
+
+   LIST_ZIP({"A", "B", "C"}, {1, 2}, "TRC") →
+     {"A", 1;
+      "B", 2}
+*/
+
+LIST_ZIP = LAMBDA(arr_1, arr_2, [mode],
+  LET(
+    mode, IF(ISOMITTED(mode), "PAD", UPPER(mode)),
+    a_1, TOCOL(arr_1, 3),
+    a_2, TOCOL(arr_2, 3),
+    len_1, ROWS(a_1),
+    len_2, ROWS(a_2),
+
+    padCount, IF(mode = "PAD", MAX(len_1, len_2), MIN(len_1, len_2)),
+
+    // Pad shorter array with NA() if needed
+    pada_1, IF(len_1 < padCount, VSTACK(a_1, MAKEARRAY(padCount - len_1, 1, LAMBDA(r,c, NA()))), a_1),
+    pada_2, IF(len_2 < padCount, VSTACK(a_2, MAKEARRAY(padCount - len_2, 1, LAMBDA(r,c, NA()))), a_2),
+
+    zipped, HSTACK(
+      IF(mode = "PAD", pada_1, INDEX(a_1, SEQUENCE(padCount))),
+      IF(mode = "PAD", pada_2, INDEX(a_2, SEQUENCE(padCount)))
+    ),
+
+    zipped
+  )
+)
+;
+
+
+/* LIST_GRID
+   Purpose:
+   Returns the Cartesian product of two lists as a two-column array,
+   pairing every item in the first list with every item in the second.
+
+   Inputs:
+   - arr_1 : First array or list (horizontal or vertical)
+   - arr_2 : Second array or list (horizontal or vertical)
+
+   Output:
+   - A two-column array with every combination of arr_1 × arr_2
+
+   Behavior:
+   - Flattens both arrays to 1D columns
+   - Preserves order
+   - Output will have ROWS(arr_1) × ROWS(arr_2) total rows
+
+   Example:
+   LIST_GRID({"A", "B"}, {1, 2, 3}) →
+     {"A", 1;
+      "A", 2;
+      "A", 3;
+      "B", 1;
+      "B", 2;
+      "B", 3}
+*/
+
+LIST_GRID = LAMBDA(arr_1, arr_2,
+  LET(
+    arr_1_flat, TOCOL(arr_1, 3),
+    arr_2_flat, TOCOL(arr_2, 3),
+    len_1, ROWS(arr_1_flat),
+    len_2, ROWS(arr_2_flat),
+    total, len_1 * len_2,
+
+    // Use MAKEARRAY to construct the Cartesian product
+    output, MAKEARRAY(total, 2,
+      LAMBDA(r, c,
+        LET(
+          i_1, QUOTIENT(r - 1, len_2) + 1,
+          i_2, MOD(r - 1, len_2) + 1,
+          IF(c = 1, INDEX(arr_1_flat, i_1), INDEX(arr_2_flat, i_2))
+        )
+      )
+    ),
+
+    output
+  )
+)
+;
+
+/* LIST_INVERT
+   Purpose:
+   Flips a 2D table by rows, columns, or both (mirror-like inversion).
+
+   Inputs:
+   - table : A 2D array or range
+   - [mode]: Optional. Inversion mode (default: "ROWS")
+       "ROWS" → Flip vertically (top-to-bottom)
+       "COLS" → Flip horizontally (left-to-right)
+       "BOTH" → Flip both rows and columns
+
+   Behavior:
+   - Preserves 2D shape
+   - Flips based on the selected direction
+   - Does not flatten or transpose
+
+   Examples:
+   LIST_INVERT({{"A","B";"C","D"}}, "ROWS") →
+     {"C","D";
+      "A","B"}
+
+   LIST_INVERT({{"A","B";"C","D"}}, "COLS") →
+     {"B","A";
+      "D","C"}
+
+   LIST_INVERT({{"A","B";"C","D"}}, "BOTH") →
+     {"D","C";
+      "B","A"}
+*/
+
+LIST_INVERT = LAMBDA(table, [mode],
+  LET(
+    mode, IF(ISOMITTED(mode), "ROWS", UPPER(mode)),
+    rows, ROWS(table),
+    cols, COLUMNS(table),
+
+    flipped, SWITCH(
+      mode,
+      "ROWS", INDEX(table, SEQUENCE(rows, , rows, -1), SEQUENCE(1, cols)),
+      "COLS", INDEX(table, SEQUENCE(rows), SEQUENCE(1, cols, cols, -1)),
+      "BOTH", INDEX(table, SEQUENCE(rows, , rows, -1), SEQUENCE(1, cols, cols, -1)),
+      table
+    ),
+
+    flipped
+  )
+)
+;
+
+/* LIST_WRAP
+   Purpose:
+   Rotates a list by N positions with wraparound, preserving all values.
+
+   Inputs:
+   - list : A vertical or horizontal array to wrap
+   - n    : Number of positions to wrap
+       Positive → wrap right/down
+       Negative → wrap left/up
+
+   Behavior:
+   - Flattens the list to a 1D array
+   - Wraps elements circularly by N positions
+   - Output orientation matches input
+
+   Examples:
+   LIST_WRAP({"A","B","C","D"}, 1) → {"D","A","B","C"}
+   LIST_WRAP({1,2,3,4}, -2) → {3,4,1,2}
+
+   See also:
+   - LIST_COPY_REVERSE
+   - LIST_ROTATE (alternate name)
+*/
+
+LIST_WRAP = LAMBDA(list, n,
+  LET(
+    flat, TOCOL(list, 3),
+    len, ROWS(flat),
+    steps, MOD(n, len),
+    wrapped, INDEX(flat, SEQUENCE(len,,len - steps + 1, 1)),
+    IF(COLUMNS(list) > 1, TRANSPOSE(wrapped), wrapped)
+  )
+)
+;
+
+
+/* LIST_N
+   Purpose:
+   Returns a list of a single repeated value.
+
+   Inputs:
+   - value : The value to repeat
+   - count : Number of times to repeat it
+   - [mode]: Optional. Output orientation
+       0 (default) = vertical list
+       1 = horizontal list
+
+   Behavior:
+   - Works with text, numbers, logicals, and error values
+   - Returns a uniform list of the specified length
+   - Supports output as a column or row
+
+   Examples:
+   LIST_N("X", 3)       → {"X"; "X"; "X"}
+   LIST_N(1, 4, 1)      → {1, 1, 1, 1}
+   LIST_N(TRUE, 2)      → {TRUE; TRUE}
+*/
+
+LIST_N = LAMBDA(value, count, [mode],
+  LET(
+    mode, IF(ISOMITTED(mode), 0, mode),
+    vector, INDEX(SEQUENCE(1,,1,0)+0*SEQUENCE(count),1)*0+value,
+    IF(mode = 1, TRANSPOSE(vector), vector)
+  )
+)
+;
+
+/* LIST_FILTER_INDEXED
+   Purpose:
+   Returns items from a list based on a list of index positions (1-based).
+
+   Inputs:
+   - list    : A 1D array or range of values
+   - indexes : A list of numeric positions (1-based)
+
+   Behavior:
+   - Retrieves elements from `list` at the specified index positions
+   - Ignores list orientation (automatically flattens)
+   - Output matches index order
+
+   Examples:
+   LIST_FILTER_INDEXED({"A","B","C","D"}, {1,3}) → {"A"; "C"}
+   LIST_FILTER_INDEXED(A1:A10, {2,4,6}) → values from those rows
+
+   See also:
+   - LIST_ENUMERATE
+   - LIST_DUPES_TABLE
+   - INDEX
+*/
+
+LIST_FILTER_INDEXED = LAMBDA(list, indexes,
+  LET(
+    flat, TOCOL(list, 3),
+    result, INDEX(flat, indexes),
+    result
+  )
+)
+;
+
+
+/* LIST_IS_DISTINCT
+   Purpose:
+   Returns TRUE if all values in the list are unique (no duplicates), FALSE otherwise.
+
+   Inputs:
+   - list : A 1D or 2D range of values
+
+   Behavior:
+   - Flattens input to a single column
+   - Compares count of total vs. unique items
+   - Returns TRUE if they match, FALSE if duplicates exist
+
+   Examples:
+   LIST_IS_DISTINCT({"A","B","C"}) → TRUE
+   LIST_IS_DISTINCT({"A","B","A"}) → FALSE
+
+   See also:
+   - LIST_DUPES_TABLE
+   - LIST_FILTER_INDEXED
+   - UNIQUE
+*/
+
+LIST_IS_DISTINCT = LAMBDA(list,
+  LET(
+    flat, TOCOL(list, 3),
+    result, COUNTA(flat) = COUNTA(UNIQUE(flat)),
+    result
+  )
+)
+;
