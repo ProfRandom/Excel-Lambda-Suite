@@ -1,4 +1,4 @@
-/* RANGE_ANALYSIS:
+/* SET_COMPARE:
    Purpose:
    Classifies the relationship between two sets:
      - EQUAL, EQUIV, PRSUB, INTER, or FAILURE
@@ -26,11 +26,11 @@
    - Use for diagnostics, validation, or set comparison logic.
 
    Examples:
-     RANGE_ANALYSIS(A1:A10, B1:B5) → "PRSUB"
-     RANGE_ANALYSIS(A1:A10, B1:B5, 1) → "Proper subset: All elements from check found in universal."
+     SET_COMPARE(A1:A10, B1:B5) → "PRSUB"
+     SET_COMPARE(A1:A10, B1:B5, 1) → "Proper subset: All elements from check found in universal."
 */
 
-RANGE_ANALYSIS = LAMBDA(universal, check, [verbose],
+SET_COMPARE = LAMBDA(universal, check, [verbose],
     LET(
         verbose, IF(OR(ISOMITTED(verbose), verbose > 1), 0, verbose),
 
@@ -88,7 +88,7 @@ RANGE_ANALYSIS = LAMBDA(universal, check, [verbose],
 
 
 
-/* RANGE_COMPLEMENT:
+/* SET_COMPLEMENT:
    Purpose:
    Returns the relative or absolute complement between two sets of values.
 
@@ -113,11 +113,11 @@ RANGE_ANALYSIS = LAMBDA(universal, check, [verbose],
    - Use `SORT(...)` externally if needed; the header will stay on top.
 
    Examples:
-     RANGE_COMPLEMENT(A1:A10, B1:B5) → U \ A
-     RANGE_COMPLEMENT(B1:B5, A1:A10, "ABS", FALSE) → {values in A1:A10 not in B1:B5}
+     SET_COMPLEMENT(A1:A10, B1:B5) → U \ A
+     SET_COMPLEMENT(B1:B5, A1:A10, "ABS", FALSE) → {values in A1:A10 not in B1:B5}
 */
 
-RANGE_COMPLEMENT = LAMBDA(universal, check, [mode], [showHeader],
+SET_COMPLEMENT = LAMBDA(universal, check, [mode], [showHeader],
     LET(
         mode, IF(ISOMITTED(mode), "REL", UPPER(mode)),
         showHeader, IF(ISOMITTED(showHeader), TRUE, showHeader),
@@ -133,7 +133,7 @@ RANGE_COMPLEMENT = LAMBDA(universal, check, [mode], [showHeader],
 
 
 
-/* RANGE_INTERSECT:
+/* SET_INTERSECT:
    Purpose:
    Returns the intersection of two ranges — only values present in both.
 
@@ -157,11 +157,11 @@ RANGE_COMPLEMENT = LAMBDA(universal, check, [mode], [showHeader],
    - Header is always fixed to the first row when shown.
 
    Examples:
-     RANGE_INTERSECT(A1:A10, B1:B5) → values in both A and B
-     RANGE_INTERSECT(A1:A10, B1:B5, 1, TRUE) → sorted list with header
+     SET_INTERSECT(A1:A10, B1:B5) → values in both A and B
+     SET_INTERSECT(A1:A10, B1:B5, 1, TRUE) → sorted list with header
 */
 
-RANGE_INTERSECT = LAMBDA(universal, check, [sortMode], [showHeader],
+SET_INTERSECT = LAMBDA(universal, check, [sortMode], [showHeader],
     LET(
         sortMode, IF(ISOMITTED(sortMode), 0, sortMode),
         showHeader, IF(ISOMITTED(showHeader), TRUE, showHeader),
@@ -177,7 +177,7 @@ RANGE_INTERSECT = LAMBDA(universal, check, [sortMode], [showHeader],
 
 
 
-/* RANGE_SYMDIFF:
+/* SET_SYMDIFF:
    Purpose:
    Returns the symmetric difference between two ranges — values unique to each.
 
@@ -201,10 +201,10 @@ RANGE_INTERSECT = LAMBDA(universal, check, [sortMode], [showHeader],
    - Function is useful for identifying mismatches or divergence between lists.
 
    Example:
-     RANGE_SYMDIFF(A1:A10, B1:B5) → values in A or B but not both
+     SET_SYMDIFF(A1:A10, B1:B5) → values in A or B but not both
 */
 
-RANGE_SYMDIFF = LAMBDA(universal, check, [sortMode], [showHeader],
+SET_SYMDIFF = LAMBDA(universal, check, [sortMode], [showHeader],
     LET(
         sortMode, IF(ISOMITTED(sortMode), 0, sortMode),
         showHeader, IF(ISOMITTED(showHeader), TRUE, showHeader),
@@ -236,7 +236,7 @@ RANGE_SYMDIFF = LAMBDA(universal, check, [sortMode], [showHeader],
 
 
 
-/* RANGE_UNION:
+/* SET_UNION:
    Purpose:
    Returns the union of two ranges — all unique values from both.
 
@@ -260,11 +260,11 @@ RANGE_SYMDIFF = LAMBDA(universal, check, [sortMode], [showHeader],
    - Use for merging distinct value lists in dashboards or conditional logic pipelines.
 
    Examples:
-     RANGE_UNION(A1:A10, B1:B5) → merged unique list
-     RANGE_UNION(A1:A10, B1:B5, 1, TRUE) → sorted union with label
+     SET_UNION(A1:A10, B1:B5) → merged unique list
+     SET_UNION(A1:A10, B1:B5, 1, TRUE) → sorted union with label
 */
 
-RANGE_UNION = LAMBDA(universal, check, [sortMode], [showHeader],
+SET_UNION = LAMBDA(universal, check, [sortMode], [showHeader],
     LET(
         sortMode, IF(ISOMITTED(sortMode), 0, sortMode),
         showHeader, IF(ISOMITTED(showHeader), FALSE, showHeader),
@@ -278,7 +278,7 @@ RANGE_UNION = LAMBDA(universal, check, [sortMode], [showHeader],
 );
 
 
-/* RANGE_ISIN:
+/* SET_ISIN:
    Purpose:
    Tests whether one or more values in `check` exist in the `universal` range.
 
@@ -301,12 +301,12 @@ RANGE_UNION = LAMBDA(universal, check, [sortMode], [showHeader],
    - Results are returned in the same order as the `check` array.
 
    Examples:
-     RANGE_ISIN(A1:A10, "apple") → TRUE
-     RANGE_ISIN(A1:A10, {"apple", "pear"}, 1) → {"YES"; "NO"}
-     RANGE_ISIN(A1:A10, {"apple", "pear"}, 3) → {"apple", TRUE; "pear", FALSE}
+     SET_ISIN(A1:A10, "apple") → TRUE
+     SET_ISIN(A1:A10, {"apple", "pear"}, 1) → {"YES"; "NO"}
+     SET_ISIN(A1:A10, {"apple", "pear"}, 3) → {"apple", TRUE; "pear", FALSE}
 */
 
-RANGE_ISIN = LAMBDA(universal, check, [mode],
+SET_ISIN = LAMBDA(universal, check, [mode],
     LET(
         // Normalize optional mode input
         mode, IF(OR(ISOMITTED(mode), mode > 3), 0, mode),

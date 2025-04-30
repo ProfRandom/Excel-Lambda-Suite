@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Astronomy Utilities/README.md",
+                "file": "Set Logic/Test Infrastructure.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "Test Infrastructure"
             }
           }
         ]
@@ -170,6 +170,10 @@
   },
   "active": "f454087349fd3edb",
   "lastOpenFiles": [
+    "String Functions/Untitled.tex",
+    "Astronomy Utilities/README.md",
+    "Set Logic/Test Infrastructure.md",
+    "List Functions/~$LIst Utilities.xlsx",
     "String Functions/String Utilities.xlsx",
     "String Functions/~$String Utilities.xlsx",
     "In development/~$Math_and_Geometry_Utils.xlsx",
@@ -181,11 +185,8 @@
     "Strings and Lists/README.md",
     "String Functions/README.md",
     "String Functions",
-    "Astronomy Utilities/README.md",
     "Astronomy Utilities/~$Astronomy Utlities.xlsx",
     "General Utilities/README.md",
-    "General Utilities/General Utlities.txt",
-    "General Utilities/~$General Utlities.xlsx",
     "Range Utilities/README.md",
     "Custom Sequence Functions/README.md",
     "Conversion Utilities/README.md",
