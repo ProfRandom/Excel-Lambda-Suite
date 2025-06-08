@@ -1,51 +1,35 @@
-# Lambda Development Suite
+# PCT_ Interpolation Utilities Suite
 
-Welcome to the **Lambda Development** repository—a growing collection of modular, well-documented custom Excel `LAMBDA` functions designed to enhance clarity, reusability, and analytical power in Excel.
+A focused collection of Excel LAMBDA functions for percentage-based calculations, including interpolation, extrapolation, remapping, and display rounding. These utilities are ideal for data normalization, visual scaling, and intuitive relative transformations.
 
----
-
-## 📁 Repository Structure
-
-Each utility group is organized into its own subfolder, complete with:
-
-- `README.md` for documentation
-- `.xlsx` files with working examples
-- `.txt` files with function code for easy import or review
-
-### Available Modules
-
-- [`Percentage_Utilities`](./Percentage%20Utilities)  
-  Functions for interpolation, normalization, percentage math, remapping, and more.
-
-*(More coming soon: `Math_Utilities`, `Geometry_Utils`, `DateTime_Utilities`, etc.)*
+> See `pct_utilities.txt` for complete logic, examples, and edge case handling.
 
 ---
 
-## 📌 Purpose
+## 🧮 Function Index
 
-This project exists to:
-- Streamline custom formula use in Excel
-- Provide high-clarity, documented LAMBDA functions
-- Encourage modular design, reuse, and educational clarity
-
-All functions are designed for:
-- 🧠 Clarity
-- 🛠 Reusability
-- 🧪 Testability
-- ✨ Elegance
-
----
-
-## 🛠 Contributing
-
-See [`CONTRIBUTING.md`](./Contributing.md) for details.  
-Bug reports, suggestions, and collaboration ideas welcome!
+| Function Name | Description |
+|---------------|-------------|
+| `PCT_OF` | Calculates a given percentage of a value. |
+| `PCT_POSITION` | Calculates the relative position of a target value within a range. |
+| `PCT_INTERPOLATE` | Calculates a value within or beyond a range using interpolation. |
+| `PCT_LBOUND` | Solves for the lower bound given interpolant, upper bound, and percentage. |
+| `PCT_UBOUND` | Solves for the upper bound given lbound, interpolant, and percentage. |
+| `PCT_REMAP` | Translates a value from one numerical range to its equivalent position in another range |
+| `PCT_REMAP_ARRAY` | Remaps a list of interpolated values from one numeric range to another, |
 
 ---
 
-## 🛡 License
+## 📘 Usage Notes
 
-- **Code** is under the [MIT License](./MIT_License.md)  
-- **Documentation** is under [CC BY 4.0](./CC_License.md)
+- Precision is controlled via an optional argument in each function (defaults to 3 decimal places).
+- Input percentages can be whole numbers or decimals; most functions auto-normalize values >1.
+- All interpolations are linear unless otherwise specified.
+- `PCT_REMAP_ARRAY` supports full-column remapping via spillable `BYROW` logic.
+- Most functions do **not clamp** extrapolated results—values outside the expected range are still computed.
 
 ---
+
+## 📂 Files
+
+- `pct_utilities.txt`: Full implementation of all `PCT_` LAMBDA functions with in-line documentation.
