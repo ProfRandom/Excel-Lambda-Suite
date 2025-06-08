@@ -1,0 +1,272 @@
+/* EPOCH_GREG_TO_HOLO
+   ------------------
+   Converts a Gregorian calendar year (BC/BCE/AD/CE or signed integer)
+   into the corresponding Holocene Era (HE) year.
+
+   Inputs:
+   - input : A Gregorian year in one of two formats:
+       → As a number (e.g., -9600, 2024)
+       → As a text label (e.g., "753 BC", "2024 CE", "44 AD")
+
+   Behavior:
+   - Interprets "BC", "BCE", "AD", "CE" suffixes (case- and space-insensitive)
+   - If input is a plain number: positive = CE, negative = BCE
+   - If input is a valid string: parses numeric value and suffix
+   - Returns HE = Gregorian + 10,000
+   - Invalid or malformed strings return #VALUE!
+
+   Examples:
+     EPOCH_GREG_TO_HOLO(2024)          → 12024
+     EPOCH_GREG_TO_HOLO(-9600)         → 401
+     EPOCH_GREG_TO_HOLO("2024 CE")     → 12024
+     EPOCH_GREG_TO_HOLO("9600 BCE")    → 401
+     EPOCH_GREG_TO_HOLO("753 BC")      → 12454
+*/
+
+EPOCH_GREG_TO_HOLO = LAMBDA(input,
+  LET(
+    isNum, ISNUMBER(input),
+
+    // === NUMERIC CASE ===
+    rawYear, IF(isNum, input, 
+      LET(
+        txt, UPPER(SUBSTITUTE(input, " ", "")),
+        hasBCE, OR(RIGHT(txt, 3) = "BCE", RIGHT(txt, 2) = "BC"),
+        hasCE,  OR(RIGHT(txt, 2) = "CE", RIGHT(txt, 2) = "AD"),
+
+        // Strip suffix
+        stripped, IF(
+          hasBCE, LEFT(txt, LEN(txt) - IF(RIGHT(txt, 3) = "BCE", 3, 2)),
+          IF(hasCE, LEFT(txt, LEN(txt) - 2), "#ERR")
+        ),
+
+        // Attempt to coerce numeric part
+        y, VALUE(stripped),
+
+        // Apply sign if BCE/BC
+        IF(ISNUMBER(y),
+          IF(hasBCE, -y, y),
+          "#VALUE!"
+        )
+      )
+    ),
+
+    // === FINAL OUTPUT ===
+    IF(ISNUMBER(rawYear),
+      rawYear + 10000,
+      rawYear // already an error like "#VALUE!"
+    )
+  )
+);
+
+
+EPOCH_HOLO_TO_GREG = LAMBDA(input, [mode],
+  LET(
+    // Default mode to "BC" (for labeled output) unless explicitly "NUM"
+    mode, IF(ISOMITTED(mode), "BC", UPPER(mode)),
+
+    // Convert HE year to signed Gregorian year
+    raw, input - 10000,
+    
+    // Handle year 0 (no such year in Gregorian calendar)
+    gregorian, IF(raw = 0, -1, raw),
+
+    // Generate labeled output
+    result,
+      IF(mode = "NUM",
+        // Numeric output if mode = "NUM"
+        gregorian,
+        // Labeled BCE/CE output (default)
+        IF(
+          gregorian < 1,
+          ABS(gregorian) & " BCE",
+          gregorian & " CE"
+        )
+      ),
+
+    result
+  )
+);
+
+/* EPOCH_GREG_TO_BP
+   ----------------
+   Converts a Gregorian calendar year (signed or labeled) into years BP (Before Present).
+
+   Inputs:
+   - input (required):
+       → A signed integer (e.g., 2024, -9600)
+       → A labeled text string with suffix (e.g., "753 BC", "9600 BCE", "44 AD")
+
+   - mode (optional):
+       "TXT"       → Output as labeled string (e.g., "3442 BP")
+       "TXT;RND"   → Labeled string, rounded to fuzzy magnitude (e.g., "21000 BP") ← Default
+       "NUM"       → Raw integer output (e.g., 3442)
+       "NUM;RND"   → Rounded numeric output (e.g., 21000)
+
+   Notes:
+   - Assumes "Present" = 1950 CE.
+   - Input is case-insensitive; suffixes "BCE", "BC", "CE", and "AD" are recognized.
+   - Rounding uses logarithmic magnitude logic (e.g., 21412 → 21000).
+   - Output is automatically labeled unless "NUM" is specified.
+
+   ⚠️ INPUT FORMATTING:
+   When entering labeled dates in spreadsheet cells, **do not use quotes**.
+   For example:
+       ✅  1492 BCE     ← Correct
+       ❌  "1492 BCE"   ← Incorrect (will break suffix parsing)
+
+   Examples:
+     B2 := 1492 CE           → typed directly (no quotes); not ="1492 CE"
+     EPOCH_GREG_TO_BP(B2)    → "3442 BP"
+
+     EPOCH_GREG_TO_BP("1492 BCE")         → "3442 BP"
+     EPOCH_GREG_TO_BP(2024, "NUM")        → -74
+     EPOCH_GREG_TO_BP("9600 BCE", "TXT")  → "11550 BP"
+     EPOCH_GREG_TO_BP("44 AD", "NUM")     → 1906
+*/
+
+
+EPOCH_GREG_TO_BP = LAMBDA(input, [mode],
+  LET(
+    // Default mode
+    m, IF(ISOMITTED(mode), "TXT;RND", UPPER(mode)),
+
+    // Determine if input is number or string
+    isNum, ISNUMBER(input),
+
+    // === NUMERIC CASE ===
+    rawYear, IF(isNum, input,
+      LET(
+        txt, UPPER(SUBSTITUTE(input, " ", "")),
+        hasBCE, OR(RIGHT(txt, 3) = "BCE", RIGHT(txt, 2) = "BC"),
+        hasCE,  OR(RIGHT(txt, 2) = "CE", RIGHT(txt, 2) = "AD"),
+
+        stripped, IF(
+          hasBCE, LEFT(txt, LEN(txt) - IF(RIGHT(txt, 3) = "BCE", 3, 2)),
+          IF(hasCE, LEFT(txt, LEN(txt) - 2), "#ERR")
+        ),
+        y, VALUE(stripped),
+        IF(ISNUMBER(y),
+          IF(hasBCE, -y, y),
+          "#VALUE!"
+        )
+      )
+    ),
+
+    // === CALCULATE BP ===
+    bp_val, IF(ISNUMBER(rawYear), 1950 - rawYear, rawYear),
+
+    // === FUZZY ROUNDING ===
+    mag, IF(ISNUMBER(bp_val), 10 ^ (INT(LOG10(ABS(bp_val))) - 1), 1),
+    fuzzy, IF(ISNUMBER(bp_val), MROUND(bp_val, mag), bp_val),
+
+    // === OUTPUT SWITCH ===
+    out, IFS(
+        AND(ISNUMBER(bp_val), m = "TXT"), bp_val & " BP",
+        AND(ISNUMBER(bp_val), m = "TXT;RND"), fuzzy & " BP",
+        AND(ISNUMBER(bp_val), m = "NUM"), bp_val,
+        AND(ISNUMBER(bp_val), m = "NUM;RND"), fuzzy,
+        TRUE, "#VALUE!"
+        ),
+
+    out
+  )
+);
+
+/* EPOCH_BP_TO_GREG
+   ----------------
+   Converts a year expressed in BP (Before Present, where "Present" = 1950 CE)
+   into its Gregorian calendar equivalent.
+
+   Inputs:
+   - input : A BP value, either as:
+       → A number (e.g., 3442, -100)
+       → A string with suffix (e.g., "3442 BP", "21000 BP")
+
+   - [mode] : Optional output format switch
+       "NUM"        → returns signed Gregorian year (e.g., -1492, 44)
+       "TXT"        → returns labeled year (e.g., "1492 BCE", "44 CE")
+       "TXT;APP"    → returns approximate labeled year (e.g., "ca. 1492 BCE") ← default
+
+   Behavior:
+   - Computes: Gregorian year = 1950 − BP
+   - Negative BP inputs represent years *after* 1950 CE (e.g., -100 → 2050 CE)
+   - Approximates output with a "ca." prefix when using "TXT;APP"
+   - Uses signed integers for "NUM" output (no prefix)
+   - Returns "BCE" for negative years, "CE" for 1 and above
+   - If year = 0, returns "1 BCE" (skips historical year zero)
+
+   Notes:
+   - Accepts numeric or labeled input values (e.g., "3000 BP")
+   - Output format is determined by optional mode switch
+   - If using "NUM" mode, the returned year may still be approximate
+     depending on the BP input — but no "ca." prefix is shown.
+   - Supports post-1950 projections via negative BP values.
+   - Edge cases like 1950 BP (= year 0) are handled to avoid LOG10 domain errors.
+
+   Examples:
+     B2 := 1492 CE     → EPOCH_GREG_TO_BP(B2)        → "3442 BP"
+     EPOCH_BP_TO_GREG("3442 BP")                     → "ca. 1492 BCE"
+     EPOCH_BP_TO_GREG(3442, "TXT")                   → "1492 BCE"
+     EPOCH_BP_TO_GREG(3442, "NUM")                   → -1492
+     EPOCH_BP_TO_GREG(-100)                          → "ca. 2050 CE"
+     EPOCH_BP_TO_GREG(44, "NUM")                     → 1906
+*/
+
+EPOCH_BP_TO_GREG = LAMBDA(input, [mode],
+  LET(
+    // === Normalize mode and input ===
+    mode_norm, IF(ISOMITTED(mode), "TXT;APP", UPPER(mode)),
+
+    // Handle numeric or labeled text input
+    input_clean, IF(
+      ISNUMBER(input),
+      input,
+      VALUE(SUBSTITUTE(UPPER(SUBSTITUTE(input, " ", "")), "BP", ""))
+    ),
+
+    // === Compute Gregorian year ===
+    raw_year, 1950 - input_clean,
+
+    // === Safe rounding factor (avoid LOG10(0) error) ===
+        round_factor,
+        IF(
+            AND(ISNUMBER(raw_year), raw_year <> 0),
+            10 ^ (ROUNDDOWN(LOG10(ABS(raw_year)), 0) - 1),
+            1
+        ),
+
+    approx_year, MROUND(raw_year, SIGN(raw_year) * round_factor),
+
+    // === Format output ===
+    use_round, ISNUMBER(SEARCH("APP", mode_norm)),
+    y, IF(use_round, approx_year, raw_year),
+
+    // Historical year label handling
+    label_year,
+      IF(
+        y = 0, "1 BCE",  // No historical year zero
+        IF(
+          y < 0,
+          TEXT(ABS(y), "0") & " BCE",
+          TEXT(y, "0") & " CE"
+        )
+      ),
+
+    prefix, IF(use_round, "ca. ", ""),
+    labeled, prefix & label_year,
+
+    // === Output mode switch ===
+    result, SWITCH(
+      TRUE,
+      mode_norm = "NUM", y,
+      mode_norm = "TXT", label_year,
+      mode_norm = "TXT;APP", labeled,
+      labeled  // fallback
+    ),
+
+    result
+  )
+);
+
+
