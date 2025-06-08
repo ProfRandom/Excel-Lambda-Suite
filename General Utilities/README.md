@@ -11,6 +11,10 @@ Essential scalar-level Excel LAMBDA functions for reciprocal math, precision for
 | Function Name | Description |
 |---------------|-------------|
 | `RECIP` | Purpose |
+| `FRAC` | Purpose |
+| `ROOT` | Purpose |
+| `FORMULA_TEXT` | Purpose |
+| `ROUND_FIX` | Purpose |
 
 ---
 
