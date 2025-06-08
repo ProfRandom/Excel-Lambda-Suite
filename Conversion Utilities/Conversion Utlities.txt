@@ -1,30 +1,208 @@
-# Conversion & Formatting Utilities
+/* CONVERT_TEMP_C_TO_F
+   Purpose:
+   Converts a Celsius temperature value to Fahrenheit.
 
-A collection of Excel LAMBDA functions for unit conversions and value formatting in temperature and length domains. Built for precision, readability, and integration into measurement-heavy workflows like construction, education, and science.
+   Returns:
+   A numeric value representing the equivalent temperature in Fahrenheit,
+   optionally rounded to a given number of decimal places.
 
-> See `unit_conversions_and_formatting.txt` for full documentation and examples.
+   Parameters:
+   - C (required): Temperature in degrees Celsius
+   - precision (optional): Number of decimal places (default = 3)
 
----
+   Notes:
+   - Automatically defaults to 3 decimal places if none provided or invalid input
+   - Output is numeric, suitable for further computation or display
+   - Uses standard formula: F = (C × 9/5) + 32
 
-## 🧮 Function Index
+   Examples:
+     CONVERT_TEMP_C_TO_F(0) → 32
+     CONVERT_TEMP_C_TO_F(100, 1) → 212.0
+     CONVERT_TEMP_C_TO_F(-40) → -40.000
+*/
 
-| Function Name | Description |
-|---------------|-------------|
-| `CONVERT_TEMP_F_TO_C` | Purpose |
-| `FORMAT_FEET_AND_INCHES` | Purpose |
-| `FORMAT_INCH_FRACTION` | Purpose |
+CONVERT_TEMP_C_TO_F = LAMBDA(C, [precision],
+    LET(
+        // Validate or default the precision value
+        precision, IF(ISOMITTED(precision) + (precision < 0), 3, precision),
 
----
+        // Conversion formula
+        fahrenheit, C * (9 / 5) + 32,
 
-## 🛠 Usage Notes
+        // Final output
+        ROUND(fahrenheit, precision)
+    )
+);
 
-- All functions include optional `precision` or `denom` parameters with safe defaults.
-- Output formats include both raw numeric results and text-based displays.
-- Fractions are simplified automatically (e.g., 0.375 → 3/8).
-- Compatible with Excel 365+ (LAMBDA support required).
 
----
+/* CONVERT_TEMP_F_TO_C:
+   Purpose:
+   Converts a temperature from degrees Fahrenheit to degrees Celsius.
 
-## 📂 Files
+   Returns:
+   A numeric value in degrees Celsius, optionally rounded to a specified number of decimal places.
 
-- `unit_conversions_and_formatting.txt`: Full function listings with inline examples and parameter notes.
+   Parameters:
+   - F (required): A temperature in degrees Fahrenheit
+   - precision (optional): Number of decimal places to round the result to (default = 3)
+
+   Notes:
+   - If precision is omitted or invalid (e.g., negative), it defaults to 3.
+   - Uses the standard formula: C = (F − 32) × 5⁄9
+   - Handles negative and fractional temperatures correctly.
+   - Useful for unit conversions in data cleanup, display, or reporting.
+
+   Examples:
+   CONVERT_TEMP_F_TO_C(32) → 0
+   CONVERT_TEMP_F_TO_C(212, 2) → 100.00
+   CONVERT_TEMP_F_TO_C(-40) → -40.000
+*/
+
+CONVERT_TEMP_F_TO_C = LAMBDA(F, [precision],
+    LET(
+        // Default precision to 3 if omitted or invalid
+        precision, IF(OR(ISOMITTED(precision), precision < 0), 3, precision),
+
+        // Conversion calculation
+        celsius, (F - 32) * (5 / 9),
+
+        // Round result
+        ROUND(celsius, precision)
+    )
+);
+
+/* FORMAT_FEET_AND_INCHES:
+   Purpose:
+   Converts a decimal foot value into feet and inches,
+   either as a decimal-inch format or as feet with fractional inches.
+
+   Returns:
+   A formatted string like "6' 5.25"" or "6' 5-1/4""
+
+   Parameters:
+   - input (required): A decimal value in feet (e.g., 6.4375)
+   - style (optional):
+       0 = use decimal inches (default)
+       1 = use fractional inches (e.g., 5-1/4")
+   - denom (optional): Denominator for fractional inches (default = 16)
+   - precision (optional): Decimal places for style 0 (default = 3)
+
+   Notes:
+   - The `precision` parameter is only used for `style = 0`
+     and has no effect when displaying fractional inches.
+   - Fractions are automatically simplified.
+   - Output always includes feet (e.g., "6'" prefix).
+   - Compatible with both positive and fractional inputs.
+
+   Examples:
+     FORMAT_FEET_AND_INCHES(6.4375)
+     → "6' 5.25""
+
+     FORMAT_FEET_AND_INCHES(6.4375, 1)
+     → "6' 5-1/4""
+
+     FORMAT_FEET_AND_INCHES(6.4375, 0, , 4)
+     → "6' 5.2500""
+*/
+
+
+FORMAT_FEET_AND_INCHES = LAMBDA(input, [style], [denom], [precision],
+    LET(
+        // === Parameter defaults and validation ===
+        style, IF((ISOMITTED(style)) + (style > 1), 0, style),
+        denom, IF(ISOMITTED(denom), 16, TRUNC(denom)),
+        precision, IF(ISOMITTED(precision), 3, precision),
+
+        // === Extract integer and decimal parts of feet ===
+        feet, QUOTIENT(input, 1),
+        feet_mant, MOD(input, 1),
+
+        // === Convert decimal portion to inches ===
+        decimal_inch, ROUND(feet_mant * 12, precision),
+        inch_int, TRUNC(decimal_inch),
+        inch_dec, decimal_inch - inch_int,
+
+        // === Calculate simplified fraction ===
+        inch_numer, TRUNC(inch_dec * denom),
+        comfact, GCD(inch_numer, denom),
+        numerfinal, inch_numer / comfact,
+        denomfinal, denom / comfact,
+        test, MOD(inch_numer, denom),
+
+        // === Assemble formatted components ===
+        frac_inch, IF(test <> 0, numerfinal & "/" & denomfinal, ""),
+        int_inch, IF(inch_int = 0, "", inch_int),
+
+        // === Combined formatting logic ===
+        combo, IFS(
+            AND(int_inch = "", frac_inch = ""),
+            feet & CHAR(39),
+            AND(int_inch = "", frac_inch <> ""),
+            feet & CHAR(39) & CHAR(32) & frac_inch & CHAR(34),
+            AND(int_inch <> "", frac_inch <> ""),
+            feet & CHAR(39) & CHAR(32) & int_inch & "-" & frac_inch & CHAR(34),
+            TRUE,
+            feet & CHAR(39) & CHAR(32) & int_inch & CHAR(34)
+        ),
+
+        // === Standard decimal formatting ===
+        standard, feet & CHAR(39) & CHAR(32) & decimal_inch & CHAR(34),
+
+        // === Return based on style selection ===
+        output, SWITCH(style, 0, standard, 1, combo),
+        output
+    )
+);
+
+
+/* FORMAT_INCH_FRACTION:
+   Purpose:
+   Converts a decimal inch measurement into a string formatted as inches and simplified fractional inches.
+   Useful for construction, cabinetry, and any application using imperial units.
+
+   Returns:
+   A text string like `2-3/8"` or `5"`
+
+   Parameters:
+   - input (required): A decimal inch value (e.g., 2.375)
+   - denom (optional): Denominator to round to (e.g., 16, 32). Defaults to 32.
+
+   Notes:
+   - Automatically reduces fractional component to lowest terms.
+   - Omits fractional part if the remainder is 0.
+   - Always returns properly formatted inch symbol (")
+   - Handles edge cases like 0", pure fractions, or whole inches.
+
+   Example:
+     FORMAT_INCH_FRACTION(2.375, 16) → "2-3/8\""
+     FORMAT_INCH_FRACTION(5) → "5\""
+*/
+
+FORMAT_INCH_FRACTION = LAMBDA(input, [denom],
+    LET(
+        // Default to 32 if no denominator provided
+        denom, IF(ISOMITTED(denom), 32, TRUNC(denom)),
+
+        // Separate whole inches and fractional part
+        inch, QUOTIENT(input, 1),
+        inch_mant, MOD(input, 1),
+
+        // Calculate fractional numerator and simplify
+        inch_numer, TRUNC(inch_mant * denom),
+        comfact, GCD(inch_numer, denom),
+        numerfinal, inch_numer / comfact,
+        denomfinal, denom / comfact,
+
+        // Format fractional part
+        has_fraction, MOD(inch_numer, denom) <> 0,
+        frac_inch, IF(has_fraction, numerfinal & "/" & denomfinal, ""),
+
+        // Construct output string
+        output, IF(
+            inch_numer = 0,
+            inch & CHAR(34),                         // e.g., 5"
+            inch & "-" & frac_inch & CHAR(34)        // e.g., 2-3/8"
+        ),
+        output
+    )
+);
