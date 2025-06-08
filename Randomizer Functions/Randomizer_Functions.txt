@@ -1,0 +1,167 @@
+/* 
+RND_DIGITS
+Returns a random whole number with a specified number of digits.
+
+If no input is provided → defaults to 5.
+If input is non-numeric → returns #VALUE!
+If input < 1            → returns #NUM!
+
+Arguments:
+- [len] (optional) — Number of digits (must be numeric and ≥ 1)
+
+Returns:
+- A random whole number with exactly 'len' digits.
+
+Examples:
+- RND_DIGITS()       → 5-digit number (e.g. 49302)
+- RND_DIGITS(3)      → 3-digit number (e.g. 218)
+- RND_DIGITS(1)      → 0–9
+- RND_DIGITS("dog")  → #VALUE!
+- RND_DIGITS(-2)     → #NUM!
+*/
+
+RND_DIGITS = LAMBDA([len],
+    LET(
+        // Default to 5 if omitted
+        len, IF(ISOMITTED(len), 5, len),
+
+        // Check for numeric input
+        valid, ISNUMBER(len),
+
+        // Raise #VALUE! if not a number
+        IF(NOT(valid), SQRT("a"),
+
+            // Raise #NUM! if input < 1
+            IF(len < 1, SQRT(-1),
+
+                // Otherwise compute bounds and return random number
+                LET(
+                    min, IF(len = 1, 0, 10 ^ (len - 1)),
+                    max, IF(len = 1, 9, 10 ^ len - 1),
+                    RANDBETWEEN(min, max)
+                )
+            )
+        )
+    )
+);
+
+
+/*
+RND_MIX
+Generates a random string of mixed characters (letters, numbers, symbols).
+If input is non-numeric → returns #VALUE!
+If input is < 1          → returns #NUM!
+If omitted or zero       → defaults to 5 characters.
+*/
+
+RND_MIX = LAMBDA([len],
+    LET(
+        len, IF(ISOMITTED(len), 5, len),
+        valid, ISNUMBER(len),
+
+        IF(NOT(valid), SQRT("a"),                      // #VALUE! if not numeric
+            IF(len < 1, SQRT(-1),                      // #NUM! if < 1
+                LET(
+                    len, INT(len),                     // Truncate to whole number
+                    small, SEQUENCE(26, , 97),
+                    large, SEQUENCE(26, , 65),
+                    numbers, SEQUENCE(10, , 48),
+                    extras, {126; 33; 64; 35; 36; 37; 94; 38; 42; 40; 41; 95; 45; 43;
+                             61; 123; 91; 125; 93; 124; 92; 58; 59; 60; 44; 62; 46; 63},
+                    all_list, VSTACK(small, large, numbers, extras),
+                    rand_list, INDEX(all_list, RANDARRAY(len, , 1, COUNTA(all_list), TRUE)),
+                    output, CONCAT(BYROW(rand_list, LAMBDA(q, CHAR(q)))),
+                    output
+                )
+            )
+        )
+    )
+);
+
+
+
+
+/*
+RND_UNIQUE
+Generates a list of unique random numbers by shuffling a generated sequence.
+
+If any input is non-numeric → #VALUE!
+If len < 1 or step = 0       → #NUM!
+If omitted, defaults to: len = 5, start = 1, step = 1
+*/
+
+RND_UNIQUE = LAMBDA([len], [start], [step],
+    LET(
+        len, IF(ISOMITTED(len), 5, len),
+        start, IF(ISOMITTED(start), 1, start),
+        step, IF(ISOMITTED(step), 1, step),
+
+        // Input validation
+        valid, ISNUMBER(len) * ISNUMBER(start) * ISNUMBER(step),
+
+        IF(NOT(valid), SQRT("a"),          // #VALUE!
+            IF(OR(len < 1, step = 0), SQRT(-1),   // #NUM!
+
+                // Generate and shuffle sequence
+                LET(
+                    len, INT(len),
+                    start, INT(start),
+                    step, INT(step),
+                    base, SEQUENCE(len, , start, step),
+                    output, SORTBY(base, RANDARRAY(len)),
+                    output
+                )
+            )
+        )
+    )
+);
+
+
+
+
+/*
+RND_STR
+Generates a random alphabetic string of specified length.
+
+Arguments:
+- [len]  (optional) — Desired number of characters (default = 5)
+- [mode] (optional) — Letter case:
+    0 → mixed (default)
+    1 → lowercase only
+    2 → uppercase only
+
+Returns:
+- A string composed of randomly selected letters, case based on mode.
+
+Examples:
+- RND_STR()         → 5-letter mixed-case string (e.g. "aFbXz")
+- RND_STR(8, 1)     → 8-letter lowercase (e.g. "qdnxeaot")
+- RND_STR(6, 2)     → 6-letter uppercase (e.g. "HJMXTZ")
+*/
+
+RND_STR = LAMBDA([len], [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 2), 0, mode),
+        len, IF(OR(ISOMITTED(len), len = 0), 5, len),
+        valid, ISNUMBER(len) * ISNUMBER(mode),
+
+        IF(NOT(valid), SQRT("a"),
+            IF(len < 1, SQRT(-1),
+                LET(
+                    len, INT(len),
+                    small, SEQUENCE(26, , 97, 1),
+                    large, SEQUENCE(26, , 65, 1),
+                    all_list, VSTACK(small, large),
+                    rand_list, SWITCH(
+                        mode,
+                        0, INDEX(all_list, RANDARRAY(len, , 1, COUNTA(all_list), TRUE)),
+                        1, INDEX(small, RANDARRAY(len, , 1, COUNTA(small), TRUE)),
+                        2, INDEX(large, RANDARRAY(len, , 1, COUNTA(large), TRUE))
+                    ),
+                    output, CONCAT(BYROW(rand_list, LAMBDA(q, CHAR(q)))),
+                    output
+                )
+            )
+        )
+    )
+);
