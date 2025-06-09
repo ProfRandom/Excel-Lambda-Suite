@@ -1,253 +1,94 @@
-.callout[data-callout="note"] {
-  background-color: #344356;
-  border-left: 4px solid #849bb8;
-  color: white;
-  font-style: italic;
-}
+/*
+  Colorful_Headers_LivePreviewOnly_Georgia.css
 
-/* Shared styling for title and icon */
-.callout[data-callout="note"] .callout-title,
-.callout[data-callout="note"] .callout-icon,
-.callout[data-callout="note"] .callout-icon svg {
-  color: #849bb8 !important;
-  stroke: #849bb8 !important;
-}
+  Applies header and emphasis styling ONLY to Live Preview (.cm-s-obsidian)
+  Does NOT affect Reading View or PDF exports.
+  Use this snippet when you want vibrant editing visuals without export contamination.
+*/
 
-/* Optional: ensure background of SVG stays transparent */
-.callout[data-callout="note"] .callout-icon svg {
-  fill: #344356 !important;
-}
-
-.callout[data-callout="tip"] {
-  background-color: #48384c;
-  border-left: 4px solid #a790ad;
-  color: white;
-  font-style: italic;
-}
-
-/* Shared styling for title and icon */
-.callout[data-callout="tip"] .callout-title,
-.callout[data-callout="tip"] .callout-icon,
-.callout[data-callout="tip"] .callout-icon svg {
-  color: #a790ad !important;
-  stroke: #a790ad !important;
-}
-
-/* Optional: ensure background of SVG stays transparent */
-.callout[data-callout="tip"] .callout-icon svg {
-  fill: #48384c !important;
-}
-
-.callout[data-callout="info"] {
-  background-color: #395b40;
-  border-left: 4px solid #00b98f;
-  color: white;
-  font-style: italic;
-}
-
-/* Shared styling for title and icon */
-.callout[data-callout="info"] .callout-title,
-.callout[data-callout="info"] .callout-icon,
-.callout[data-callout="info"] .callout-icon svg {
-  color: #00b98f !important;
-  stroke: #00b98f !important;
-}
-
-/* Optional: ensure background of SVG stays transparent */
-.callout[data-callout="info"] .callout-icon svg {
-  fill: #395b40 !important;
-}
-
-
-.callout[data-callout="warning"] {
-  background-color: #55571e;
-  border-left: 4px solid #00b98f;
-  color: white;
-  font-style: italic;
-}
-
-/* Shared styling for title and icon */
-.callout[data-callout="warning"] .callout-title,
-.callout[data-callout="warning"] .callout-icon,
-.callout[data-callout="warning"] .callout-icon svg {
-  color: #00b98f !important;
-  stroke: #00b98f !important;
-}
-
-/* Optional: ensure background of SVG stays transparent */
-.callout[data-callout="warning"] .callout-icon svg {
-  fill: #55571e !important;
-}
-
-.callout[data-callout="danger"] {
-  background-color: #5d3a27;
-  border-left: 4px solid #b77652;
-  color: white;
-  font-style: italic;
-}
-
-/* Shared styling for title and icon */
-.callout[data-callout="danger"] .callout-title,
-.callout[data-callout="danger"] .callout-icon,
-.callout[data-callout="danger"] .callout-icon svg {
-  color: #b77652 !important;
-  stroke: #b77652 !important;
-}
-
-/* Optional: ensure background of SVG stays transparent */
-.callout[data-callout="danger"] .callout-icon svg {
-  fill: #5d3a27 !important;
-}
-
-
+/* Inline Title Overrides (editor only) */
 body {
-  --inline-title-color: Peru !important;
-  --inline-title-font: "Verdana";
-  /*--inline-title-line-height: var(--h1-line-height);*/
-  --inline-title-size: 22pt;
-  /*--inline-title-style: var(--h1-style);
-  --inline-title-variant: var(--h1-variant);*/
+  --inline-title-color: LightGoldenRodYellow !important;
+  --inline-title-font: "Bookman Old Style", sans-serif !important;
+  --inline-title-size: 28pt;
   --inline-title-weight: bold;
-
+  --header-font-family: "Century Schoolbook", serif;
+  /* <--- NEW variable here */
+  --h1-size: 23pt;
+  --h2-size: 21pt;
+  --h3-size: 19pt;
+  --h4-size: 17pt;
+  --h5-size: 15pt;
+  --h6-size: 13pt;
+  --h1-color: LightSkyBlue;
+  --h2-color: Gold;
+  --h3-color: MediumSpringGreen;
+  --h4-color: Moccasin;
+  --h5-color: LightPink;
+  --h6-color: LightSalmon;
 }
 
-.markdown-preview-view {
-  background-color: #464646 !important;
-   color: #FFFFFF !important;
-  border-left: 4px solid var(--accent-color);
-  padding: 1em;
+.cm-s-obsidian .inline-title {
+  color: var(--inline-title-color);
+  font-family: var(--inline-title-font);
+  font-size: var(--inline-title-size);
+  font-weight: var(--inline-title-weight);
+  text-decoration: underline;
+  /* 👈 Add this line */
 }
 
-
-/* Override for bold text in reading (preview) mode */
-.markdown-preview-view strong {
-  color: SkyBlue !important;
-  font-weight: bold !important;
-}
-
-/* Override for bold text in editor (live view) mode */
+/* Bold text in Live Preview */
 .cm-s-obsidian span.cm-strong {
-  color: SkyBlue !important;
+  color: Plum !important;
   font-weight: bold !important;
 }
 
-/* Italic text in preview (reading mode) */
-.markdown-preview-view em {
-  color: MediumSpringGreen !important;
-  font-style: italic !important;
-}
-
-/* Italic text in editor (live edit mode) */
+/* Italic text in Live Preview */
 .cm-s-obsidian span.cm-em {
-  color: MediumSpringGreen !important;
+  color: turquoise !important;
   font-style: italic !important;
 }
 
-/* Edit mode: bold + italic = force bold color */
+/* Bold + Italic in Live Preview */
 .cm-s-obsidian span.cm-strong.cm-em {
-  color: SandyBrown !important;  /* Use your bold color here */
+  color: DarkKhaki !important;
   font-weight: bold !important;
   font-style: italic !important;
 }
 
-/* Handles both nesting orders */
-.markdown-preview-view strong em,
-.markdown-preview-view em strong {
-  color: SandyBrown !important;
-  font-weight: bold !important;
-  font-style: italic !important;
-}
-
-
-
-/* Header Font Family */
-.cm-s-obsidian .cm-header-1,
-.cm-s-obsidian .cm-header-2,
-.cm-s-obsidian .cm-header-3,
-.cm-s-obsidian .cm-header-4,
-.cm-s-obsidian .cm-header-5,
-.cm-s-obsidian .cm-header-6 {
-  font-family: "Verdana" !important;
-  font-weight: normal !important;
-}
-
-/* Header Font Family */
-.markdown-preview-view h1,
-.markdown-preview-view h2,
-.markdown-preview-view h3,
-.markdown-preview-view h4,
-.markdown-preview-view h5,
-.markdown-preview-view h6 {
-  font-family: "Verdana" !important;
-  font-weight: normal !important;
-}
-
-/* H1 in preview (reading mode) */
-.markdown-preview-view h1 {
-   font-size: 24pt !important; 
-  color: gold !important;
-}
-
-/* H1 in editor (live editing mode) */
+/* Header Font and Color (Live Preview) */
 .cm-s-obsidian .cm-header-1 {
-  color: gold !important;
+  font-family: var(--header-font-family) !important;
+  font-size: var(--h1-size) !important;
+  color: var(--h1-color) !important;
 }
 
-/* H2 in preview (reading mode) */
-.markdown-preview-view h2 {
-  color: DarkSeaGreen !important;
-}
-
-/* H2 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-2 {
-  color: DarkSeaGreen !important;
+  font-family: var(--header-font-family) !important;
+  font-size: var(--h2-size) !important;
+  olor: var(--h2-color) !important;
 }
 
-/* H3 in preview (reading mode) */
-.markdown-preview-view h3 {
-  color: SkyBlue !important;
-}
-
-/* H3 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-3 {
-  color: SkyBlue !important;
+  font-family: var(--header-font-family) !important;
+  font-size: var(--h3-size) !important;
+  olor: var(--h3-color) !important;
 }
 
-/* H4 in preview (reading mode) */
-.markdown-preview-view h4 {
-  color: Salmon !important;
-}
-
-/* H4 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-4 {
-  color: Salmon !important;
+  font-family: var(--header-font-family) !important;
+  font-size: var(--h4-size) !important;
+  olor: var(--h4-color) !important;
 }
 
-/* H5 in preview (reading mode) */
-.markdown-preview-view h5 {
-  color: RosyBrown !important;
-}
-
-/* H5 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-5 {
-  color: RosyBrown !important;
+  font-family: var(--header-font-family) !important;
+  font-size: var(--h5-size) !important;
+  olor: var(--h5-color) !important;
 }
 
-/* H6 in preview (reading mode) */
-.markdown-preview-view h6 {
-  color: PeachPuff !important;
-}
-
-/* H6 in editor (live editing mode) */
 .cm-s-obsidian .cm-header-6 {
-  color: PeachPuff !important;
+  font-family: var(--header-font-family) !important;
+  font-size: var(--h6-size) !important;
+  olor: var(--h6-color) !important;
 }
-
-*/@media print {
-  .markdown-preview-view {
-    background: white !important;
-    color: black !important;
-  }
-}*/
-
-

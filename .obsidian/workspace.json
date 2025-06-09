@@ -11,14 +11,10 @@
             "id": "f454087349fd3edb",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Set Logic/Test Infrastructure.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "Test Infrastructure"
+              "title": "New tab"
             }
           }
         ]

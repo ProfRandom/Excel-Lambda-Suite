@@ -502,10 +502,27 @@ STAT_WTD_AVG = LAMBDA(wts, values,
     )
 );
 
+/* STAT_SELF_WTD_AVG
 
-STAT_SELF_WT_AVG = LAMBDA(range,
-    SUMPRODUCT(range, range) / SUM(range)
+Returns a self-weighted average of values, where each value is treated as its own weight.
+
+Arguments:
+- range : numeric array
+
+Returns:
+- Σ(xᵢ²) / Σ(xᵢ)
+- Returns #N/A if total sum = 0
+
+*/
+
+STAT_SELF_WTD_AVG = LAMBDA(range,
+    LET(
+        sum_vals, SUM(range),
+        result, IF(sum_vals = 0, NA(), SUMPRODUCT(range, range) / sum_vals),
+        result
+    )
 );
+
 
 /* STAT_RANGE_PERCENT_TRANSFER:
 
