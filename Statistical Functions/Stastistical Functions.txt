@@ -1,0 +1,641 @@
+/*
+STAT_QNTILES
+Returns equally spaced quantiles from a numeric range, with optional labels and bin-style slicing.
+
+Arguments:
+- range       — Numeric input range (e.g., A1:A100)
+- [divisions] — (optional) Number of quantile intervals (default = 10)
+- [mode]      — (optional) Use "LBL" to return labeled 2-column output (default = values only)
+- [style]     — (optional) "ALL" (default) includes 0% and 100%; "BIN" excludes both boundaries
+- [precision] — (optional) Decimal rounding precision (default = 3)
+
+Returns:
+- A vertical list of quantile values, or a 2-column labeled array, depending on mode.
+
+Examples:
+- STAT_QNTILES(A1:A100)                     → Deciles
+- STAT_QNTILES(A1:A100, 4, "LBL")           → Quartiles with labels
+- STAT_QNTILES(A1:A100, 10, , "BIN")        → Internal bin boundaries (10-tiles)
+- STAT_QNTILES(A1:A100, 20, "LBL", "BIN", 2) → Labeled bin cuts with 2-digit rounding
+*/
+
+STAT_QNTILES = LAMBDA(range, [divisions], [mode], [style], [precision],
+    LET(
+        // Normalize optional arguments
+        divisions, IF(ISOMITTED(divisions), 10, divisions),
+        mode, IF(ISOMITTED(mode), "", UPPER(mode)),
+        style, IF(ISOMITTED(style), "ALL", UPPER(style)),
+        precision, IF(ISOMITTED(precision), 3, precision),
+
+        // Validation
+        countVals, COUNT(range),
+        isValid, ISNUMBER(divisions) * ISNUMBER(precision),
+
+        IF(countVals = 0, SQRT("a"),
+            IF(OR(NOT(isValid), divisions < 1), SQRT(-1),
+
+                LET(
+                    // Percentile cut points based on style
+                    pctiles, SWITCH(
+                        style,
+                        "BIN", SEQUENCE(divisions - 1, 1, 1) / divisions,
+                        SEQUENCE(divisions + 1, 1, 0) / divisions  // Default = ALL
+                    ),
+
+                    // Label formatting
+                    pct_labels, TEXT(pctiles, "0%"),
+
+                    // Calculate quantile values
+                    pct_vals, ROUND(PERCENTILE.INC(range, pctiles), precision),
+
+                    // Output formatting
+                    IF(mode = "LBL",
+                        CHOOSE({1, 2}, pct_labels, VALUE(pct_vals)),
+                        TOCOL(pct_vals)
+                    )
+                )
+            )
+        )
+    )
+);
+
+
+/* STAT_STDERR
+
+Returns the standard error of the mean (SEM) for a numeric array.
+
+Arguments:
+- array     = The dataset to evaluate
+- mode      = Optional; "pop" for population (default), "samp" for sample
+- label     = Optional; "LBL" to return a labeled string, otherwise returns numeric
+- precision = Optional; number of decimal places to round result (default: 3)
+
+Notes:
+- Standard error reflects the expected variability of the sample mean, assuming the data represents a random sample.
+- If the dataset represents the entire population, SEM is mathematically valid but not practically necessary—it models error that doesn’t exist.
+
+Example:
+=STAT_STDERR(A1:A100, "samp", "LBL", 2)
+→ "Standard Error: 1.27"
+*/
+
+STAT_STDERR = LAMBDA(array, [mode], [label], [precision],
+    LET(
+        precision, IF(ISOMITTED(precision), 3, precision),
+        label, IF(ISOMITTED(label), "", label),
+        mode, IF(ISOMITTED(mode), "pop", LOWER(mode)),
+
+        // Compute standard error based on mode
+        stderr, SWITCH(
+            mode,
+            "pop", STDEV.P(array) / SQRT(COUNTA(array)),
+            "samp", STDEV.S(array) / SQRT(COUNTA(array)),
+            STDEV.P(array) / SQRT(COUNTA(array))  // fallback
+        ),
+
+        result, ROUND(stderr, precision),
+
+        IF(label = "lbl", "Standard Error: " & result, result)
+    )
+);
+
+
+
+/* STAT_MINMAX
+
+Returns the minimum and maximum of a numeric array, optionally labeled as a two-column array.
+
+Arguments:
+- array  = The dataset to evaluate
+- prec   = Optional; number of decimal places to round result (default: 3)
+- label  = Optional; "LBL" returns two-column output with text and numeric values
+- layout = Optional; "H" for horizontal, "V" for vertical (default: "V")
+
+Returns:
+- Default: {min; max} numeric array
+- If label = "LBL": 
+    Min     | value  
+    Max     | value  
+- Layout mode affects orientation only if label ≠ "LBL"
+
+*/
+
+STAT_MINMAX = LAMBDA(array, [prec], [label], [layout],
+    LET(
+        prec, IF(ISOMITTED(prec), 3, prec),
+        label, IF(ISOMITTED(label), "", UPPER(label)),
+        layout, IF(ISOMITTED(layout), "V", UPPER(layout)),
+
+        min_val, ROUND(MIN(array), prec),
+        max_val, ROUND(MAX(array), prec),
+
+        result_lbl, VSTACK(
+            HSTACK("Min", min_val),
+            HSTACK("Max", max_val)
+        ),
+
+        result_raw, IF(layout = "H",
+            HSTACK(min_val, max_val),
+            VSTACK(min_val, max_val)
+        ),
+
+        IF(label = "LBL", result_lbl, result_raw)
+    )
+);
+
+/* STAT_SUMMARY
+
+Provides a concise statistical summary for a numeric array.
+
+Arguments:
+- range  = The dataset to evaluate
+- mode   = Optional; "SMRY" or "SPAN" (default: SPAN)
+           SMRY: Min, Mean, Median, Max, Stdev
+           SPAN: Min, μ−σ, Mean, μ+σ, Max, Stdev
+- label  = Optional; "LBL" returns a two-column labeled array
+- prec   = Optional; number of decimal places (default: 3)
+
+Returns:
+- A vertical numeric array or labeled matrix depending on mode and label flag
+
+Mode Descriptions:
+- "SMRY": Balanced snapshot of center and spread
+- "SPAN": Emphasizes distribution shape around the mean (μ ± σ),
+          with clear labeling of Mean (μ) and Stdev (σ) only
+
+*/
+
+STAT_SUMMARY = LAMBDA(range, [mode], [label], [prec],
+    LET(
+        raw_mode, IF(ISOMITTED(mode), "SPAN", UPPER(mode)),
+        mode, IF(OR(raw_mode = "SMRY", raw_mode = "SPAN"), raw_mode, 1/0),
+
+        label, IF(ISOMITTED(label), "", UPPER(label)),
+        prec, IF(ISOMITTED(prec), 3, prec),
+
+        μ, AVERAGE(range),
+        σ, STDEV.P(range),
+        min_val, MIN(range),
+        max_val, MAX(range),
+        med_val, MEDIAN(range),
+        μ_minus_σ, μ - σ,
+        μ_plus_σ, μ + σ,
+
+        // Summary mode: Min, Mean, Median, Max, Stdev
+        smry_vals, VSTACK(
+            min_val,
+            μ,
+            med_val,
+            max_val,
+            σ
+        ),
+        smry_labels, VSTACK("Min", "Mean (μ)", "Median", "Max", "Stdev (σ)"),
+
+        // Span mode: Min, μ−σ, Mean, μ+σ, Max, σ
+        span_vals, VSTACK(
+            min_val,
+            μ_minus_σ,
+            μ,
+            μ_plus_σ,
+            max_val,
+            σ
+        ),
+        span_labels, VSTACK("Min", "μ − σ", "Mean (μ)", "μ + σ", "Max", "Stdev (σ)"),
+
+        selected_vals, IF(mode = "SPAN", span_vals, smry_vals),
+        selected_labels, IF(mode = "SPAN", span_labels, smry_labels),
+
+        rounded_vals, ROUND(selected_vals, prec),
+
+        result, IF(label = "LBL",
+            HSTACK(selected_labels, rounded_vals),
+            rounded_vals
+        ),
+
+        result
+    )
+);
+
+/* STAT_GEO5
+
+Returns a geometric five-point summary of a numeric range.
+
+This is NOT a percentile-based summary (like quartiles),
+but a symmetric positional scaffold across the Min–Max span.
+
+Arguments:
+- range   : Required array of numeric values
+- label   : Optional; use "LBL" for labeled 2-column output (default: unlabeled)
+- prec    : Optional; number of decimal places (default: 3)
+
+Returns:
+- A vertical numeric array or labeled matrix including:
+  {Min, Lower Mid, Midrange, Upper Mid, Max}
+
+Formulas:
+- Min         = MIN(range)
+- Midrange    = (MIN + MAX) / 2
+- Lower Mid   = (MIN + Midrange) / 2
+- Upper Mid   = (Midrange + MAX) / 2
+- Max         = MAX(range)
+
+Note:
+- This function is **distribution-agnostic**. It reports numeric position only, 
+  without regard to the frequency or clustering of values. That means datasets 
+  with highly skewed or repetitive values may still yield evenly spaced results 
+  if Min and Max remain the same. It is best understood as a *symmetry scaffold*, 
+  not a distributional analysis.
+
+*/
+
+STAT_GEO5 = LAMBDA(range, [label], [prec],
+    LET(
+        label, IF(ISOMITTED(label), "", UPPER(label)),
+        prec, IF(ISOMITTED(prec), 3, prec),
+
+        min_val, MIN(range),
+        max_val, MAX(range),
+        midrange, (min_val + max_val) / 2,
+        lower_mid, (min_val + midrange) / 2,
+        upper_mid, (midrange + max_val) / 2,
+
+        raw_vals, VSTACK(min_val, lower_mid, midrange, upper_mid, max_val),
+        rounded_vals, ROUND(raw_vals, prec),
+
+        labels, VSTACK("Min", "Lower Mid", "Midrange", "Upper Mid", "Max"),
+
+        output, IF(label = "LBL", HSTACK(labels, rounded_vals), rounded_vals),
+
+        output
+    )
+);
+
+/* STAT_VOLUME
+
+Returns basic volumetric stats for a numeric range.
+
+Arguments:
+- range   : Required numeric array
+- label   : Optional; use "LBL" for labeled 2-column output
+- prec    : Optional; number of decimal places (default: 3)
+
+Returns:
+- Count
+- Sum
+- Mean (μ)
+
+*/
+
+STAT_VOLUME = LAMBDA(range, [label], [prec],
+    LET(
+        label, IF(ISOMITTED(label), "", UPPER(label)),
+        prec, IF(ISOMITTED(prec), 3, prec),
+
+        count_val, COUNT(range),
+        sum_val, SUM(range),
+        mean_val, IF(count_val > 0, AVERAGE(range), NA()),
+
+        raw_vals, VSTACK(count_val, sum_val, mean_val),
+        rounded_vals, ROUND(raw_vals, prec),
+
+        labels, VSTACK("Count", "Sum", "Mean (μ)"),
+
+        output, IF(label = "LBL", HSTACK(labels, rounded_vals), rounded_vals),
+
+        output
+    )
+);
+
+/* STAT_SHAPE
+
+Returns central tendency and shape descriptors for a numeric array.
+
+Arguments:
+- range   : Required numeric array
+- label   : Optional; use "LBL" for labeled 2-column output
+- prec    : Optional; number of decimal places (default: 3)
+
+Returns:
+- Mean (μ)
+- Median
+- Skew.P
+- Kurt.P
+
+Note:
+- Returns #N/A for Skew or Kurtosis if fewer than 3 values are present.
+
+*/
+
+STAT_SHAPE = LAMBDA(range, [label], [prec],
+    LET(
+        label, IF(ISOMITTED(label), "", UPPER(label)),
+        prec, IF(ISOMITTED(prec), 3, prec),
+
+        count_val, COUNT(range),
+
+        μ, IF(count_val > 0, AVERAGE(range), NA()),
+        med, IF(count_val > 0, MEDIAN(range), NA()),
+        skew, IF(count_val > 2, SKEW.P(range), NA()),
+        kurt, IF(count_val > 3, KURT(range), NA()),
+
+        raw_vals, VSTACK(μ, med, skew, kurt),
+        rounded_vals, ROUND(raw_vals, prec),
+
+        labels, VSTACK("Mean (μ)", "Median", "Skew (P)", "Kurtosis (P)"),
+
+        output, IF(label = "LBL", HSTACK(labels, rounded_vals), rounded_vals),
+
+        output
+    )
+);
+
+
+
+STAT_LIST(OLD) = LAMBDA(range, [mode], [prec],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 6), 0, mode),
+        prec, IF(ISOMITTED(prec), 3, prec),
+        label_list, transpose({"Min",
+                    "ς⁻",
+                    "μ",
+                    "ς⁺",
+                    "Max",
+                    "σ",
+                    "Skew.P",
+                    "Ct",
+                    "Range",
+                    "Midrange",
+                    "Sum",
+                    "ẋ"}),
+        stats, TRANSPOSE(
+                    CHOOSE(
+                        {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+                        FIXED(MIN(range), prec), // min
+                        FIXED(
+                            AVERAGE(range) - STDEV.P(range),
+                            prec
+                        ), // -sigma
+                        FIXED(AVERAGE(range), prec), // mean
+                        FIXED(
+                            AVERAGE(range) + STDEV.P(range),
+                            prec
+                        ), // +sigma
+                        FIXED(MAX(range), prec), // max
+                        FIXED(STDEV.P(range), prec), // sigma
+                        FIXED(SKEW.P(range), prec), // skew
+                        FIXED(COUNT(range), 0), // count
+                        FIXED(MAX(range) - MIN(range), prec), // range
+                        FIXED(AVERAGE(MIN(range),MAX(range)),prec), // midrange
+                        FIXED(SUM(range), prec), // sum
+                        FIXED(median(range), prec), // median
+                        
+                    )
+                ),
+        output, CHOOSE({1, 2}, label_list, VALUE(stats)),
+        return, switch(mode,
+            0, output,
+            1, chooserows(output, 1, 5),
+            2, Chooserows(output, 1, 3, 5),
+            3, Chooserows(output, 1, 2, 3, 4, 5),
+            4, Chooserows(output, 1, 2, 3, 4, 5, 11),
+            5, Chooserows(output, 1, 2, 3, 4, 5, 6),
+            6, Chooserows(output, 1, 2, 3, 4, 5, 6, 11)
+            ),
+        return
+    )
+
+);
+
+/* STAT_MIDRANGE
+
+Returns the midrange of a numeric array: the average of its Min and Max.
+
+Arguments:
+- array : required numeric range
+- prec  : optional number of decimal places (default = 3)
+
+Returns:
+- A single numeric value: (MIN + MAX) / 2
+
+*/
+
+STAT_MIDRANGE = LAMBDA(array, [prec],
+    LET(
+        prec, IF(ISOMITTED(prec), 3, prec),
+        count_val, COUNT(array),
+        midrange, IF(count_val = 0, NA(), AVERAGE(MIN(array), MAX(array))),
+        ROUND(midrange, prec)
+    )
+);
+
+
+/* STAT_FREQ_TABLE
+
+Generates a frequency table from a numeric range.
+
+Arguments:
+- range : required numeric input
+- mode  : optional keyword ("LBL" to include column headers; default = no headers)
+
+Returns:
+- A 3-column spilled array:
+    • Column 1: Unique values
+    • Column 2: Frequency (count)
+    • Column 3: Weighted product (value × count)
+
+Notes:
+- Sorted in ascending order
+- Includes headers if mode = "LBL"
+- Useful for mode analysis, weighted means, and distribution overview
+
+*/
+
+STAT_FREQ_TABLE = LAMBDA(range, [mode],
+    LET(
+        // Handle label mode
+        mode, IF(ISOMITTED(mode), "", UPPER(mode)),
+
+        // Prepare unique values in sorted order
+        u_vals, SORT(UNIQUE(range)),
+
+        // Frequency counts per unique value
+        weights, BYROW(u_vals, LAMBDA(a, COUNTIF(range, a))),
+
+        // Weighted value × frequency
+        products, u_vals * weights,
+
+        // Add column headers if "LBL" mode
+        values_col, IF(mode = "LBL", VSTACK("Value", u_vals), u_vals),
+        weights_col, IF(mode = "LBL", VSTACK("Weight", weights), weights),
+        products_col, IF(mode = "LBL", VSTACK("Product", products), products),
+
+        // Final output
+        HSTACK(values_col, weights_col, products_col)
+    )
+);
+
+
+/* STAT_WTD_AVG
+
+Returns the weighted average of a value set based on a matching weight set.
+
+Arguments:
+- wts    : array of weights
+- values : array of values (same length as weights)
+
+Returns:
+- Weighted average = SUMPRODUCT(wts, values) / SUM(wts)
+- Returns #N/A if input lengths mismatch or weight sum is zero
+
+*/
+
+STAT_WTD_AVG = LAMBDA(wts, values,
+    LET(
+        len_match, COUNTA(wts) = COUNTA(values),
+        total_wt, SUM(wts),
+        result, IF(
+            NOT(len_match) + (total_wt = 0),
+            NA(),
+            SUMPRODUCT(wts, values) / total_wt
+        ),
+        result
+    )
+);
+
+
+STAT_SELF_WT_AVG = LAMBDA(range,
+    SUMPRODUCT(range, range) / SUM(range)
+);
+
+/* STAT_RANGE_PERCENT_TRANSFER:
+
+Transfers a percentage between two pairs of numbers
+
+E.g. PERCENT_OF_LIST_XFR(3,11,5,2,19) = 6.25, which is:
+    Find the percentage represented by 5 between 3 and 11
+    Find the number between 2 and 19 which corresponds to
+        that same percentage.
+
+        i.e. 5 is 25% of the range 3 to 11;
+        6.25 is 25% of the range 2 to 19
+*/
+
+STAT_STAT_RANGE_PERCENT_TRANSFER = LAMBDA(StartMin, StartMax, Target, EndMin, EndMax, [decprec],
+    LET(
+        decprec, IF(ISOMITTED(decprec), 15, decprec),
+        pct, (Target - StartMin) / (StartMax - StartMin),
+        calc, pct * (EndMax - EndMin) + EndMin,
+        round(calc, decprec)
+    )
+);
+
+/* STAT_RANGE_PERCENT_OF_VALUE:
+
+Returns the percentage (as a decimal fraction) between min and max
+    which is represented by a given value
+
+E.g. The value 7 represents 0.44444... (44.4%) of the range 3 to 12
+*/
+
+STAT_STAT_RANGE_PERCENT_OF_VALUE = LAMBDA(min, max, value, [decprec],
+    LET(
+        decprec, IF(ISOMITTED(decprec), 15, decprec),
+        calc, (value - min) / (max - min),
+        round(calc, decprec)
+    )
+);
+
+/* STAT_RANGE_VALUE_OF_PERCENT:
+
+Returns the value which is the given percentage between MIN and MAX
+pct is supplied as a decimal number between 0 and 100
+    and converted internally to a decimal fraction
+    i.e. pct = 40.65 -> 0.4065
+*/
+
+STAT_RANGE_VALUE_OF_PERCENT = LAMBDA(min, max, pct, [decprec],
+    LET(
+        decprec, IF(ISOMITTED(decprec), 15, decprec),
+        // pct, pct / 100,
+        calc, pct * (max - min) + min,
+        round(calc, decprec)
+    )
+);
+
+STAT_BENFORD_DIST = LAMBDA([null],
+    LET(
+        list, TOCOL({1, 2, 3, 4, 5, 6, 7, 8, 9}),
+        output, BYROW(list, LAMBDA(x, LOG(1 + (1 / MOD(x, 10))))),
+        output
+    )
+);
+
+STAT_RND_BENFORD_SINGLE = LAMBDA([null],
+    
+    // generates a single digit with a probability based on the Benford Distribution
+    LET(
+        numlist, SEQUENCE(9, , 1, 1),
+        problist, {0.301, 0.477, 0.602, 0.699, 0.778, 0.845, 0.903, 0.954, 1},
+        prob, XLOOKUP(RAND(), problist, problist, , 1),
+        prob_index, MATCH(prob, problist, 0),
+        digit, INDEX(numlist, prob_index),
+        VALUE(digit)
+    )
+);
+
+STAT_RND_BENFORD = LAMBDA([digits],
+    LET(
+        digits, IF(ISOMITTED(digits), 3, digits),
+        numlist, SEQUENCE(9, 1, 1, 1),
+        problist, {0.301, 0.477, 0.602, 0.699, 0.778, 0.845, 0.903, 0.954, 1},
+        random_numbers, RANDARRAY(digits, 1),
+        generated_digits, INDEX(numlist, MATCH(XLOOKUP(random_numbers, problist, problist, , 1), problist, 1)),
+        generated_number, TEXTJOIN("", TRUE, generated_digits),
+        VALUE(generated_number)
+    )
+);
+
+
+
+
+// BRACKETS_TARGET = LAMBDA(TestArray, Target, [incl], [mode], [decprec],
+//     LET(
+//         decprec, IF(ISOMITTED(decprec), 3, decprec),
+//         mode, IF(OR(ISOMITTED(mode), mode > 2), 0, mode),
+//         incl, IF(OR(ISOMITTED(incl), incl > 1), 0, incl),
+
+//         // Compute bracketing values
+//         lower, MAX(FILTER(TestArray, TestArray < Target)),
+//         upper, MIN(FILTER(TestArray, TestArray > Target)),
+
+//         outList, IF(incl = 0, {lower, Target, upper}, {lower, upper}),
+        
+//         output, SWITCH(
+//             mode,
+//             0, TOCOL(ROUND(outList, decprec)),
+//             1, TOROW(ROUND(outList, decprec)),
+//             2, "(" & TEXTJOIN(" : ", , FIXED(outList, decprec)) & ")"
+//         ),
+
+//         output
+//     )
+// );
+
+// BRACKETS_ARRAY = LAMBDA(LookupArray, ReturnArray, [Mode],
+//     LET(
+//         mode, IF(OR(ISOMITTED(Mode), Mode > 2), 0, Mode),
+//         Avg, AVERAGE(LookupArray),
+//         Least, MAX(FILTER(LookupArray, LookupArray < Avg)),
+//         Most, MIN(FILTER(LookupArray, LookupArray > Avg)),
+//         Least_index, XLOOKUP(Least, LookupArray, ReturnArray),
+//         Most_index, XLOOKUP(Most, LookupArray, ReturnArray),
+//         list, TEXTJOIN(" ", , Least_index, Avg, Most_index),
+//         output, SWITCH(
+//             mode,
+//             0, TOCOL(TEXTSPLIT(list, " ")),
+//             1, TOROW(TEXTSPLIT(list, " ")),
+//             2, CONCAT("(", TEXTJOIN(" : ", , FIXED(Least, 3), FIXED(Avg, 3), FIXED(Most, 3)), ")")
+//         ),
+//         output
+//     )
+// );
