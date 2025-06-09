@@ -211,3 +211,47 @@ PCT_REMAP_ARRAY = LAMBDA(
     )
 );
 
+/* PCT_RESOLVE:
+   Purpose: Solves for any one of the values in a percentage relationship:
+     - low (start), high (end), percent (as decimal), or target (interpolated value).
+
+   Returns: A single decimal number (rounded)
+
+   Parameters:
+   - low (required): Starting or minimum value
+   - high (required): Ending or maximum value
+   - percent (required): Percentage between low and high, expressed as a **decimal** (e.g., 0.25 for 25%)
+   - mode (optional): Determines which value to solve for
+     - 0 = solve for percent, given a target
+     - 1 = solve for target, given percent
+     - 2 = solve for low, given percent and high and target
+     - 3 = solve for high, given percent and low and target
+   - precision (optional): Rounding precision; default is 3
+
+   Notes:
+   - Percentage must be expressed as a decimal (e.g., 0.5 = 50%)
+   - Inputs low, high, and percent should be ordered consistently
+   - Handles both forward and inverse interpolation
+
+   Example:
+   PCT_RESOLVE(40, 100, 0.75, 1) → 85
+*/
+PCT_RESOLVE = LAMBDA(low, high, percent, [mode], [precision],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode < 0, mode > 3), 0, mode),
+        precision, IF(OR(ISOMITTED(precision), precision < 0), 3, precision),
+        target, low + (high - low) * percent,
+        pct, (percent - low) / (high - low),
+        newLow, high - ((high - low) * percent),
+        newHigh, ((percent - low) / percent) + low,
+        output, SWITCH(
+            mode,
+            0, ROUND(pct, precision), // Find percent
+            1, ROUND(target, precision), // Find interpolated target
+            2, ROUND(newLow, precision), // Find low, given high and percent
+            3, ROUND(newHigh, precision), // Find high, given low and percent
+            "#MODE?"
+        ),
+        output
+    )
+);
