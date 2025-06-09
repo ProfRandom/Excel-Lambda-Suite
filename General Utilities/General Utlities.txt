@@ -1,3 +1,53 @@
+/* FORMAT_AS_LIST
+   Purpose:
+   Converts a list of values into a syntactically valid Excel array constant string,
+   useful for embedding directly in LAMBDA definitions as {item1, item2, ...} or {item1; item2; ...}.
+
+   Inputs:
+   - range   : The list or array to format
+   - [format]: Optional. 0 = comma-separated (horizontal), 1 = semicolon-separated (vertical)
+   - [style] : Optional. 0 = include curly braces (default), 1 = omit braces
+   - [sort]  : Optional. 0 = no sort (default), 1 = alphabetically sorted
+   - [mode]  : Optional. 0 = include all values (default), 1 = use only unique values
+
+   Output:
+   - A string formatted as a valid Excel array constant
+*/
+
+FORMAT_AS_LIST = LAMBDA(range, [format], [style], [sort], [mode],
+    LET(
+        // Normalize input flags with default fallbacks
+        style, IF(OR(ISOMITTED(style), style > 1), 0, style),
+        format, IF(OR(ISOMITTED(format), format > 1), 0, format),
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+        sort, IF(OR(ISOMITTED(sort), sort > 1), 0, sort),
+
+        // Choose array separator based on format
+        separator, IF(format = 0, ", ", "; "),
+
+        // Convert to 1D array and apply uniqueness mode
+        list, SWITCH(mode,
+            0, TOCOL(range, 3),     // all values
+            1, UNIQUE(TOCOL(range, 3)) // unique values only
+        ),
+
+        // Optionally sort the list
+        sorted, SWITCH(sort,
+            0, list,                // no sort
+            1, SORT(list)           // alphabetical sort
+        ),
+
+        // Final assembly: wrap with braces if style = 0
+        output, SWITCH(style,
+            0, "{" & TEXTJOIN(separator, , sorted) & "}",  // include braces
+            1, TEXTJOIN(separator, , sorted)               // omit braces
+        ),
+
+        output
+    )
+);
+
+
 /* RECIP:
    Purpose:
    Returns the reciprocal (multiplicative inverse) of a number.
@@ -16,8 +66,6 @@
      RECIP(4) → 0.25
      RECIP(0.2) → 5
 */
-
-
 RECIP = LAMBDA(input, 1 / input);
 
 /* FRAC:
@@ -42,16 +90,14 @@ RECIP = LAMBDA(input, 1 / input);
    FRAC(-3.25)       → 0.25  
    FRAC(-3.25, 1)    → -0.25
 */
-
-
 FRAC = LAMBDA(input, [mode],
     LET(
         // Default mode to 0 if omitted or invalid
         mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
-
+        
         // Compute fractional part by subtracting integer portion
         frac_part, input - TRUNC(input),
-
+        
         // Return signed or absolute value depending on mode
         IF(mode = 1, frac_part, ABS(frac_part))
     )
@@ -79,12 +125,12 @@ FRAC = LAMBDA(input, [mode],
    ROOT(9, 0.5)   → 81
    ROOT(-5, 3)    → #NUM!
 */
-
 ROOT = LAMBDA(n, [x],
     LET(
         root_degree, IF(ISOMITTED(x), 2, x),
-        IF(n < 0,
-            SQRT(-1),  // Triggers #NUM! error for negative base
+        IF(
+            n < 0,
+            SQRT(-1), // Triggers #NUM! error for negative base
             n ^ (1 / root_degree)
         )
     )
@@ -114,18 +160,14 @@ ROOT = LAMBDA(n, [x],
      - If the referenced cell does not contain a formula, an error will occur.
      - This function does not evaluate or alter the formula—only formats it for display.
 */
-
-FORMULA_TEXT=LAMBDA(
-  formula_cell,  // A reference to a cell containing a formula
-
-  LET(
-    raw, FORMULATEXT(formula_cell),                        // "=RECIP(ROOT(PI(),3))"
-    clean, TEXTAFTER(raw, "="),                            // "RECIP(ROOT(PI(),3))"
-    label, SUBSTITUTE(CELL("address", formula_cell), "$", "") & ":= ",
-    label & clean
-  )
+FORMULA_TEXT = LAMBDA(formula_cell, // A reference to a cell containing a formula
+    LET(
+        raw, FORMULATEXT(formula_cell), // "=RECIP(ROOT(PI(),3))"
+        clean, TEXTAFTER(raw, "="), // "RECIP(ROOT(PI(),3))"
+        label, SUBSTITUTE(CELL("address", formula_cell), "$", "") & ":= ",
+        label & clean
+    )
 );
-
 
 /* ROUND_FIX
    --------------------------
@@ -158,40 +200,47 @@ FORMULA_TEXT=LAMBDA(
      - Supports both rounding and truncation modes.
      - Ideal for formatting constants, visual display control, or ensuring clean outputs in reports.
 */
-
-
-ROUND_FIX=LAMBDA(
-  number,         // Required: the number to round or truncate
-  places,         // Required: number of decimal places to retain
-  [as_text],      // Optional: if TRUE, return result as text with fixed decimal places
-  [use_round],    // Optional: if TRUE, round; if FALSE or omitted, truncate
-
-  LET(
-    n, N(number),                        // Ensure numeric input
-    raw_p, N(places),                   // Raw input for places
-    round_flag, IF(ISBLANK(use_round), FALSE, use_round),
-    return_text, IF(ISBLANK(as_text), FALSE, as_text),
-
-    // Excel only reliably displays up to 9 decimals as numeric
-    max_places, IF(return_text, raw_p, MIN(raw_p, 9)),
-
-    pwr_10, 10 ^ max_places,             // Power of 10 for rounding/truncation
-
-    // Perform rounding or truncation
-    result,
-      IF(round_flag,
-        ROUND(n, max_places),
-        TRUNC(n * pwr_10) / pwr_10
-      ),
-
-    // Optionally format as fixed-length string
-    final,
-      IF(return_text,
-        TEXT(result, "0." & REPT("0", max_places)),
-        result
-      ),
-
-    final
-  )
+ROUND_FIX = LAMBDA(
+    number, // Required: the number to round or truncate
+    places, // Required: number of decimal places to retain
+    [as_text], // Optional: if TRUE, return result as text with fixed decimal places
+    [use_round], // Optional: if TRUE, round; if FALSE or omitted, truncate
+    LET(
+        n, N(number), // Ensure numeric input
+        raw_p, N(places), // Raw input for places
+        round_flag, IF(ISBLANK(use_round), FALSE, use_round),
+        return_text, IF(ISBLANK(as_text), FALSE, as_text),
+        
+        // Excel only reliably displays up to 9 decimals as numeric
+        max_places, IF(return_text, raw_p, MIN(raw_p, 9)),
+        pwr_10, 10 ^ max_places, // Power of 10 for rounding/truncation
+        
+        // Perform rounding or truncation
+        result, IF(round_flag, ROUND(n, max_places), TRUNC(n * pwr_10) / pwr_10),
+        
+        // Optionally format as fixed-length string
+        final, IF(return_text, TEXT(result, "0." & REPT("0", max_places)), result),
+        final
+    )
 );
 
+/* COUNTA_STRICT
+   Purpose:
+   Returns a count of non-blank, non-empty, and non-whitespace-only values from a range.
+   Returns 0 if no meaningful content exists.
+
+   Inputs:
+   - input : A vertical list or any single-column range
+
+   Returns:
+   - Integer: Number of cells that contain meaningful content (ignores "", " ")
+
+   Behavior:
+   - If the range contains only blanks or whitespace-only cells → returns 0
+   - Otherwise returns COUNTA(input)
+   - Assumes input is a static or structured range (not dynamic spill)
+
+   Example:
+   COUNTA_STRICT({"apple", "", " ", "grape"}) → 2
+*/
+COUNTA_STRICT = LAMBDA(input, IF(COUNTIF(input, "*?") = 0, 0, COUNTA(input)));
