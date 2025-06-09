@@ -165,3 +165,30 @@ RND_STR = LAMBDA([len], [mode],
         )
     )
 );
+
+
+/*
+RND_BY_SEED
+Generates a deterministic pseudo-random number using Lehmer RNG (modulo 2^31−1).
+
+Arguments:
+- seed — A numeric seed (should be > 0 and < 2^31−1)
+
+Returns:
+- A reproducible pseudo-random value between 1 and 2,147,483,646
+
+Properties:
+- The same input seed will always return the same output.
+- Useful for testing, reproducible simulations, or deterministic random workflows.
+
+Example:
+- RND_BY_SEED(12345) → 595905495
+*/
+
+RND_BY_SEED = LAMBDA(seed,
+    LET(
+        output, MOD(48271 * seed, 2^31 - 1),
+        output
+    )
+);
+
