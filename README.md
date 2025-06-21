@@ -1,5 +1,10 @@
 # Excel LAMBDA Suite: Advanced Formula Library
 
+> *Reusable functional building blocks for modeling, simulation, and advanced spreadsheet design.*  
+> *Created by a worldbuilder, educator, and Excel enthusiast exploring LAMBDA’s potential for accessible, reusable modeling.*
+
+---
+
 ## TL;DR
 
 **A collection of reusable Excel LAMBDA functions for advanced modeling, analysis, and spreadsheet automation.**
