@@ -1,37 +1,51 @@
-# STR_ String Utilities Suite
+# 🔤 String Processing LAMBDA Suite for Excel
 
-A robust set of Excel LAMBDA functions designed for string manipulation, character filtering, and lightweight text parsing. These utilities are essential for cleaning input, analyzing character composition, and building custom transformation pipelines inside spreadsheets.
-
-> See `str_utilities.txt` for the full implementation, notes, and examples.
+This suite provides Excel LAMBDA functions for advanced string parsing, character filtering, extraction, sanitization, and pattern isolation. These tools simplify text preprocessing, cleanup, validation, and transformation directly within spreadsheets — ideal for dynamic models, import pipelines, form processing, and text-heavy data sources.
 
 ---
 
-## 🧮 Function Index
+## 📘 Overview
 
-| Function Name | Description |
-|---------------|-------------|
-| `STR_GETDIGITS` | Extracts all digit characters (0–9) from a text string and returns them as a single string. |
-| `STR_GETCHARS` | Extracts all non-digit characters from a text string and returns them as a single string. |
-| `STR_FILTERCHARS` | Filters characters from a string based on a named mode (e.g., digits, letters, symbols). |
-| `STR_SANITIZE` | Replaces invisible or nonstandard whitespace characters with ASCII space. |
-| `STR_SPLITCHARS` | Splits a string into individual characters as a column or row array. |
-| `STR_UNIQUECHARS` | Returns the unique characters from a string, with optional case normalization and sorting. |
-| `STR_HASCAP_AFTERFIRST` | Returns TRUE if a string contains a capital letter after the first character. |
-| `STR_TEXTBETWEEN` | Extracts the substring between two delimiters. |
-| `STR_REMOVE_ENCLOSED` | Recursively removes all text inside parentheses, including the parentheses themselves. |
-| `STR_COUNTCHAR` | Counts how many times a given character appears in a string. |
+The suite offers powerful string operations that allow you to extract digits, isolate characters, sanitize text, validate casing patterns, split strings into individual characters, and remove enclosed substrings. Fully compatible with dynamic arrays, the functions can be chained for complex text manipulation scenarios.
 
 ---
 
-## 📘 Usage Notes
+## 📑 Function Index
 
-- All functions are Excel-native and use `LAMBDA` syntax; compatible with dynamic arrays and `LET`.
-- Fallback values like `"#NONE!"` can be overridden in most extraction functions.
-- Functions like `STR_FILTERCHARS` and `STR_UNIQUECHARS` include case handling, ASCII evaluation, or mode selectors.
-- Designed to complement each other—e.g., `STR_SANITIZE` → `STR_GETCHARS` → `STR_UNIQUECHARS` is a useful pipeline.
+| Function | Summary |
+|---------|---------|
+| `STR_GETDIGITS` | Extracts all digit characters from a text string. |
+| `STR_GETCHARS` | Extracts all non-digit characters from a text string. |
+| `STR_FILTERCHARS` | Filters string content, returning only characters matching a custom character set. |
+| `STR_COUNTCHAR` | Counts occurrences of a specific character within a string. |
+| `STR_UNIQUECHARS` | Returns unique characters from a string, eliminating duplicates. |
+| `STR_SPLITCHARS` | Splits a string into an array of single characters. |
+| `STR_HASCAP_AFTERFIRST` | Tests if a string contains capital letters after the first character (camelCase detection). |
+| `STR_REMOVE_ENCLOSED` | Removes substrings enclosed within specified start/end markers (e.g., parentheses). |
+| `STR_SANITIZE` | Removes control characters (tabs, line breaks, non-printables) from text. |
+| `STR_TEXTBETWEEN` | Extracts substring located between two delimiters (simplified version of Excel's native `TEXTBETWEEN`). |
 
 ---
 
-## 📂 Files
+## 🧩 Highlights and Tips
 
-- `str_utilities.txt`: Source file with full inline documentation and code examples.
+- 🔢 **Digit Isolation**: `STR_GETDIGITS` pulls out numeric content embedded within mixed text strings.
+- 🔡 **Custom Filtering**: `STR_FILTERCHARS` allows precision control over which characters are retained.
+- 🧼 **Sanitization**: `STR_SANITIZE` is highly useful for cleaning data pulled from web sources, forms, or APIs.
+- 🏷 **Camel Case Validation**: `STR_HASCAP_AFTERFIRST` assists in detecting improperly formatted field names.
+- 🔍 **Structural Parsing**: `STR_REMOVE_ENCLOSED` and `STR_TEXTBETWEEN` simplify extraction of substrings embedded within delimiters.
+- 🔬 **Character-Level Arrays**: `STR_SPLITCHARS` and `STR_UNIQUECHARS` make downstream text analysis and visualization easy.
+
+---
+
+## ⚙️ Requirements
+
+- ✅ Modern Excel with LAMBDA and dynamic array support (Office 365 or Excel 2021+).
+- 🚫 No external dependencies or constant sets required.
+
+---
+
+## 📎 File Contents
+
+- `String Excel LAMBDA Suite.txt`: Master definitions file with inline comments and annotated examples.
+- `README.md`: This guide (suitable for GitHub or Obsidian publishing).

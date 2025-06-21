@@ -1,37 +1,49 @@
-# TIME_ Utilities Suite
+# ⏱️ Time Conversion LAMBDA Suite for Excel
 
-This suite contains versatile and powerful Excel LAMBDA functions for manipulating, converting, formatting, and computing with time values. The functions handle both numeric and textual inputs, support multiple unit systems (Y/D/H/M/S), and offer formatting suitable for display or downstream computation.
-
-> See `time_utils.txt` for full function definitions, comments, and usage examples.
+This suite provides Excel LAMBDA functions for working with mixed time units, clock formats, decimal conversions, and offset calculations. The tools support both interval-based time modeling and 12-hour / 24-hour clock format transformations, useful for scheduling, planning, simulation, and display formatting directly within Excel.
 
 ---
 
-## 🧮 Function Index
+## 📘 Overview
 
-| Function Name | Description |
-|---------------|-------------|
-| `TIME_UNITS_TO_DECIMAL` | Converts structured time components (Y/D/H/M/S) into a single decimal value in the specified unit. |
-| `TIME_DECIMAL_TO_UNITS` | Converts a decimal duration (in Y/D/H/M/S) into a human-readable or formatted breakdown string. |
-| `TIME_DIFF` | Computes the time difference between two Excel time values and returns it in multiple formats. |
-| `TIME_MIL12_TO_MIL24` | Converts "military-style" 12-hour strings (e.g., `"0930AM"`) into standard 24-hour format (`"HHMM"`). |
-| `TIME_MIL24_TO_MIL12` | Converts 24-hour military time (`"HHMM"`) into compact 12-hour format (`"hhmmAM/PM"`). |
-| `TIME_MIL12_TO_CLOCK12` | Converts compact military 12-hour strings into display-friendly `"h:mmAM"` or `"h:mmPM"` formats. |
-| `TIME_CLOCK12_TO_MIL12` | Converts Excel-style `"h:mm AM"` strings into compact `"hhmmAM"` military format. |
-| `TIME_MIL12_SHIFT` | Shifts a `"hhmmAM"` style time by a specified number of hours (positive or negative). |
-| `TIME_STD12_SHIFT` | Shifts a standard 12-hour Excel time by fractional hours, with optional formatted output. |
+The suite enables flexible conversion between component-based time (years, days, hours, minutes, seconds), decimalized time values, and various 12-hour and 24-hour clock formats. Full bidirectional conversion and precise offset handling are supported for complex modeling.
 
 ---
 
-## 📘 Usage Notes
+## 📑 Function Index
 
-- **Serial vs. Text**: Many functions accept or return Excel serial times, while others use compact string formats.
-- **Flexible Units**: `TIME_UNITS_TO_DECIMAL` and `TIME_DECIMAL_TO_UNITS` use astronomical year assumptions (365.25 days).
-- **Display Optimization**: Output formatting is compatible with dashboards, logs, and printable reports.
-- **Time Wrapping**: Functions like `TIME_MIL12_SHIFT` and `TIME_STD12_SHIFT` gracefully wrap around midnight using modulo logic.
-- **Error Handling**: Most conversions return readable fallback strings like `"Invalid Unit"` or `"Invalid Input"` when inputs are malformed.
+| Function | Summary |
+|---------|---------|
+| `TIME_UNITS_TO_DECIMAL` | Converts multiple time components (years, days, hours, minutes, seconds) into a decimal time value in any unit (Y, D, H, M, S). |
+| `TIME_DECIMAL_TO_UNITS` | Decomposes a decimal time value back into its full component breakdown. |
+| `TIME_DIFF` | Calculates the full difference between two decimal time values, returning signed and absolute unit deltas. |
+| `TIME_CLOCK12_TO_MIL12` | Converts 12-hour clock time (e.g. `10:30 PM`) to 12-hour military format (0000–1159). |
+| `TIME_MIL12_TO_CLOCK12` | Converts 12-hour military time (0000–1159) back to standard 12-hour AM/PM clock format. |
+| `TIME_MIL12_TO_MIL24` | Converts 12-hour military format to 24-hour military format (0000–2359). |
+| `TIME_MIL24_TO_MIL12` | Converts 24-hour military format back to 12-hour military format. |
+| `TIME_MIL12_SHIFT` | Applies offset to 12-hour military time with wraparound adjustment. |
+| `TIME_STD12_SHIFT` | Applies offset to standard 12-hour AM/PM clock time with wraparound correction. |
 
 ---
 
-## 📂 Files
+## 🧩 Highlights and Tips
 
-- `time_utils.txt`: Full suite with function definitions, inline documentation, and examples.
+- 🔢 **Mixed-Unit Conversion**: Combine `TIME_UNITS_TO_DECIMAL` and `TIME_DECIMAL_TO_UNITS` for clean back-and-forth translations between full time components and decimal forms.
+- ⏳ **Precise Differences**: `TIME_DIFF` returns both full-unit breakdown and absolute time difference calculations.
+- 🕰 **Clock Format Transformations**: Easily swap between standard clock and military formats using `TIME_CLOCK12_TO_MIL12`, `TIME_MIL12_TO_CLOCK12`, and related functions.
+- 🔄 **Offset Adjustments**: Use `TIME_MIL12_SHIFT` and `TIME_STD12_SHIFT` for scheduled adjustments, shift calculations, and circular time modeling.
+- 📊 **Simulation-Friendly**: Clean integration with LAMBDA chains for complex time-driven spreadsheet models.
+
+---
+
+## ⚙️ Requirements
+
+- ✅ Modern Excel with LAMBDA and dynamic array support (Office 365 or Excel 2021+).
+- 🚫 No external dependencies or constant sets required.
+
+---
+
+## 📎 File Contents
+
+- `Time Conversion Excel LAMBDA Suite.txt`: Master definitions file with inline comments and annotated examples.
+- `README.md`: This guide (suitable for GitHub or Obsidian publishing).

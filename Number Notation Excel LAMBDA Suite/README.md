@@ -1,31 +1,42 @@
-# NUMNOTE Utilities Suite
+# 🔢 Number Notation LAMBDA Suite for Excel
 
-A small but powerful collection of Excel LAMBDA functions for numeric display formatting in scientific, engineering, and magnitude-aware contexts. These functions provide precision control and clarity for metrics, charts, dashboards, or reports.
-
-> See `numnote_utilities.txt` for full source code and usage examples.
+This suite provides Excel LAMBDA functions for converting numbers into specialized notations, including engineering formats, SI-style magnitude suffixes, and tagged exponential formats. These tools are helpful for scientific modeling, dashboards, reports, or any situation where compact and readable numeric display improves interpretation.
 
 ---
 
-## 🧮 Function Index
+## 📘 Overview
 
-| Function Name | Description |
-|---------------|-------------|
-| `NUMNOTE_ENGINEERING` | Converts a number into **engineering notation** (i.e., exponent is always a multiple of 3). |
-| `NUMNOTE_MAGNITUDE` | Converts a numeric value into a human-readable string using |
-| `NUMNOTE_POWERTAG` | Returns only the exponent tag portion of a number’s scientific or power-of-ten notation. |
+The suite offers controlled precision formatting for technical presentations, simulation outputs, or scientific summaries. All functions support clean string outputs with customizable precision, aligned to standard engineering and scientific practices.
 
 ---
 
-## 📘 Usage Notes
+## 📑 Function Index
 
-- Ideal for scientific reporting, engineering dashboards, and annotation layers.
-- Precision and format are customizable for each function.
-- Outputs are text-formatted strings for clean display.
-- `NUMNOTE_MAGNITUDE` and `NUMNOTE_ENGINEERING` differ mainly in how they express exponent scales (metric vs base-10 × 3).
-- `NUMNOTE_POWERTAG` is useful as a standalone scale label or combined with values.
+| Function | Summary |
+|---------|---------|
+| `NUMNOTE_ENGINEERING` | Converts a number into engineering notation where exponents are multiples of 3 (e.g., `1.23E+06`). |
+| `NUMNOTE_MAGNITUDE` | Converts numbers into human-readable SI-style magnitude suffixes (e.g., k, M, G, m, μ, n). |
+| `NUMNOTE_POWERTAG` | Converts numbers into explicit exponential power tags (e.g., `1.23×10^6`) for publication-quality formatting. |
 
 ---
 
-## 📂 Files
+## 🧩 Highlights and Tips
 
-- `numnote_utilities.txt`: Full function listing with inline documentation and examples.
+- ⚙ **Engineering Alignment**: `NUMNOTE_ENGINEERING` ensures that exponents align with common SI engineering units (multiples of 3).
+- 🔠 **Compact Suffixing**: `NUMNOTE_MAGNITUDE` is ideal for dashboards and summary tables where compact presentation improves readability.
+- 🧪 **Scientific Formatting**: `NUMNOTE_POWERTAG` produces true scientific-style exponential formatting useful for printed reports, papers, or educational materials.
+- 🔧 **Precision Control**: All functions allow you to specify the number of decimal places for clean numeric presentation.
+
+---
+
+## ⚙️ Requirements
+
+- ✅ Modern Excel with LAMBDA and dynamic array support (Office 365 or Excel 2021+).
+- 🚫 No external dependencies or constant sets required.
+
+---
+
+## 📎 File Contents
+
+- `Number Notation Excel LAMBDA Suite.txt`: Master definitions file with inline comments and annotated examples.
+- `README.md`: This guide (suitable for GitHub or Obsidian publishing).

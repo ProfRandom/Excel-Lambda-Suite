@@ -1,58 +1,59 @@
-# 📊 STAT_ Utilities Suite
+# 📊 Statistical LAMBDA Suite for Excel
 
-This suite provides a collection of Excel LAMBDA functions for statistical analysis, distribution summaries, percentile quantiles, shape metrics, and data characterization. Designed for educators, analysts, and data stewards who want immediate insights from raw data—without complex setup or external tools.
-
-> All functions are self-contained, input-validating, and support scalar or array output depending on use. Most functions support label-enhanced output via a `"LBL"` parameter.
+This suite provides Excel LAMBDA functions for summary statistics, frequency tables, weighted averages, percentile evaluation, distribution modeling, shape diagnostics, and forensic data analysis (including Benford’s Law support). These tools support exploratory data analysis, audit preparation, business reporting, and scientific modeling directly within Excel.
 
 ---
 
-## 📘 Function Index
+## 📘 Overview
 
-| Function Name         | Description |
-|-----------------------|-------------|
-| `STAT_QNTILES`        | Returns deciles, quartiles, or custom quantile cut points from a dataset. |
-| `STAT_STDERR`         | Computes standard error of the mean (population or sample). |
-| `STAT_MINMAX`         | Reports min and max values, optionally with labels and layout options. |
-| `STAT_SUMMARY`        | Compact 5- or 6-point summary around the mean and standard deviation. |
-| `STAT_GEO5`           | Reports geometric 5-point spread: min, lower-mid, midrange, upper-mid, max. |
-| `STAT_VOLUME`         | Returns count, sum, and mean of a dataset. |
-| `STAT_SHAPE`          | Measures central tendency and shape: mean, median, skewness, kurtosis. |
-| `STAT_MIDRANGE`       | Returns the midpoint between the dataset’s minimum and maximum. |
-| `STAT_FREQ_TABLE`     | Builds a frequency table with value counts and weighted product sums. |
-| `STAT_WTD_AVG`        | Computes a weighted average of two parallel arrays. |
-| `STAT_SELF_WTD_AVG`   | Computes a self-weighted average using each value as its own weight. |
-| `STAT_PCT_REMAP`      | Maps a value from one range to another based on relative position. |
-| `STAT_PCT_OF_RANGE`   | Determines what percentage a value represents between a given min and max. |
-| `STAT_VALUE_OF_PCT`   | Calculates the value that corresponds to a given percent position in a range. |
-| `STAT_BENFORD_TABLE`  | Lists theoretical Benford digit probabilities for digits 1 through 9. |
-| `STAT_RND_BENFORD`    | Returns a random digit (or multi-digit number) weighted by Benford probabilities. |
-| `STAT_VAL_BRACKET`    | Locates the bounding values surrounding a specified number in a dataset. |
+The suite delivers full quantile generation, statistical summaries, flexible percentile remapping, frequency analysis, advanced self-weighted averages, error estimation, and Benford distribution modeling. It supports both broad EDA (exploratory data analysis) and specialized compliance or forensic analytics, all fully dynamic-array compatible.
 
 ---
 
-## 📘 Usage Notes
+## 📑 Function Index
 
-- **Label Output**: Most functions accept `"LBL"` as a flag to return two-column labeled outputs. This enables immediate interpretation without sacrificing numeric accessibility.
-- **Precision Handling**: The `[prec]` argument controls rounding; default is 3 decimals unless otherwise noted.
-- **Validation**: Functions enforce valid ranges and parameter types. Invalid input returns `#NUM!` or `#VALUE!` as appropriate.
-- **Flexible Formats**: Where applicable, vertical, horizontal, and string outputs are supported via keywords (`"VER"`, `"HOR"`, `"STR"`).
-- **Benford Support**: The Benford-related functions enable both distribution inspection and probability-weighted random digit generation. See also: `STAT_BENFORD_TABLE`, `STAT_RND_BENFORD`.
-- **Symmetry vs Distribution**: Functions like `STAT_GEO5` are symmetry-based (geometric intervals) rather than percentile-driven.
+| Function | Summary |
+|---------|---------|
+| `STAT_QNTILES` | Calculates quantiles or labeled percentile cuts with bin-mode slicing and precision control. |
+| `STAT_FREQ_TABLE` | Generates frequency counts for categorical data ranges. |
+| `STAT_SUMMARY` | Returns min, max, mean, median, and standard deviation for a numeric dataset. |
+| `STAT_MIDRANGE` | Computes midrange (average of min and max). |
+| `STAT_MINMAX` | Returns both minimum and maximum values as a paired array. |
+| `STAT_STDERR` | Computes standard error of the mean. |
+| `STAT_WTD_AVG` | Computes weighted averages using paired value and weight arrays. |
+| `STAT_SELF_WTD_AVG` | Computes self-weighted average where each value serves as its own weight. |
+| `STAT_PCT_OF_RANGE` | Calculates what percentage of the range a target value represents. |
+| `STAT_VALUE_OF_PCT` | Returns the data value corresponding to a given percentile within a dataset. |
+| `STAT_PCT_REMAP` | Remaps a target's position from one range onto a new range based on percentile alignment. |
+| `STAT_VAL_BRACKET` | Assigns a value into its corresponding percentile bracket using quantile thresholds. |
+| `STAT_VOLUME` | Computes volume from width, depth, and height (simple helper utility). |
+| `STAT_BENFORD_TABLE` | Returns expected digit frequencies for Benford’s Law analysis (1st-digit forensic test). |
+| `STAT_RND_BENFORD` | Generates random samples distributed according to Benford’s Law (for simulation and testing). |
+| `STAT_SHAPE` | Reports array dimensions (rows, columns, total size). |
+| `STAT_GEO5` | Calculates the 5-number summary (min, Q1, median, Q3, max). |
 
 ---
 
-## 🔍 Related Functions
+## 🧩 Highlights and Tips
 
-- **Quantile Analysis**: `STAT_QNTILES`
-- **Summary Reporting**: `STAT_SUMMARY`, `STAT_GEO5`
-- **Shape Detection**: `STAT_SHAPE`, `STAT_STDERR`
-- **Range Mapping**: `STAT_PCT_REMAP`, `STAT_PCT_OF_RANGE`, `STAT_VALUE_OF_PCT`
-- **Data Frequency**: `STAT_FREQ_TABLE`, `STAT_WTD_AVG`, `STAT_SELF_WTD_AVG`
+- 🔢 **Full Quantile Control**: Use `STAT_QNTILES`, `STAT_GEO5`, and `STAT_VAL_BRACKET` for quantile slicing, summarization, and percentile bracketing.
+- 🏷 **Frequency Analysis**: `STAT_FREQ_TABLE` generates fast category counts for tables and dashboards.
+- 📊 **Summary Statistics**: `STAT_SUMMARY`, `STAT_MINMAX`, `STAT_MIDRANGE`, and `STAT_STDERR` deliver instant descriptive statistics.
+- 🎯 **Percentile Mapping**: `STAT_PCT_OF_RANGE`, `STAT_VALUE_OF_PCT`, and `STAT_PCT_REMAP` allow seamless value-position scaling across ranges.
+- ⚖ **Weighted Averaging**: Support both external (`STAT_WTD_AVG`) and self-weighted (`STAT_SELF_WTD_AVG`) averages for flexible scoring models.
+- 🧪 **Benford Forensics**: `STAT_BENFORD_TABLE` and `STAT_RND_BENFORD` offer forensic tools for compliance auditing and fraud detection.
+- 🧬 **Shape Diagnostics**: `STAT_SHAPE` helps LAMBDA authors diagnose dynamic array dimensions for robust formula design.
 
 ---
 
-## 📂 Files
+## ⚙️ Requirements
 
-- `stat_utils.txt`: Full suite of function definitions with inline comments and usage examples.
-- `stat_utils_readme.md`: This README file.
+- ✅ Modern Excel with LAMBDA and dynamic array support (Office 365 or Excel 2021+).
+- 🚫 No external dependencies or constant sets required.
 
+---
+
+## 📎 File Contents
+
+- `Stastistical Excel LAMBDA Suite.txt`: Master definitions file with inline comments and annotated examples.
+- `README.md`: This guide (suitable for GitHub or Obsidian publishing).

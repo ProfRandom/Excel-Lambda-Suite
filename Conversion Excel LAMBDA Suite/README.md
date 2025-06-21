@@ -1,56 +1,43 @@
-# 🧪 Conversion Excel LAMBDA Suite
+# 📏 Unit Conversion LAMBDA Suite for Excel
 
-This suite contains LAMBDA functions for converting between commonly used measurement systems. It includes utilities for working with temperature units and formatting length measurements in imperial feet-and-inches notation.
-
-All functions follow Excel's LAMBDA convention and are suitable for spill-enabled environments.
+This suite provides a compact set of Excel LAMBDA functions for common temperature conversions and imperial unit formatting. The tools are designed for data modeling, reporting, construction planning, cabinetry layouts, and any workflow where practical unit conversions are required.
 
 ---
 
-## Included Functions
+## 📘 Overview
 
-### ✅ `CONVERT_TEMP_C_TO_F`
-**Converts a Celsius temperature to Fahrenheit.**
-
-- **Input:** `C` (Celsius), optional `precision`
-- **Returns:** Temperature in °F
-- **Example:** `CONVERT_TEMP_C_TO_F(0)` → 32
+Each function is self-contained, providing flexible rounding, customizable formatting, and clean handling of fractional inch formats. The suite allows numeric outputs for further calculations or text outputs for direct display in spreadsheets and dashboards.
 
 ---
 
-### ✅ `CONVERT_TEMP_F_TO_C`
-**Converts a Fahrenheit temperature to Celsius.**
+## 📑 Function Index
 
-- **Input:** `F` (Fahrenheit), optional `precision`
-- **Returns:** Temperature in °C
-- **Example:** `CONVERT_TEMP_F_TO_C(212, 2)` → 100.00
-
----
-
-### ✅ `FORMAT_FEET_AND_INCHES`
-**Converts a decimal feet value into formatted feet + inches.**
-
-- **Input:** `input` (e.g. 6.4375), optional `style`, `denom`, `precision`
-- **Returns:** Text like `"6' 5.25"` or `"6' 5-1/4""`
-- **Example:** `FORMAT_FEET_AND_INCHES(6.4375, 1)` → `"6' 5-1/4""`
+| Function | Summary |
+|---------|---------|
+| `CONVERT_TEMP_C_TO_F` | Converts Celsius to Fahrenheit with optional rounding precision. |
+| `CONVERT_TEMP_F_TO_C` | Converts Fahrenheit to Celsius with optional rounding precision. |
+| `FORMAT_FEET_AND_INCHES` | Converts decimal feet into formatted feet-and-inches strings, supporting decimal or fractional inches. |
+| `FORMAT_INCH_FRACTION` | Converts decimal inches into simplified fractional inch format as text. |
 
 ---
 
-### ✅ `FORMAT_INCH_FRACTION`
-**Converts a decimal inch value into formatted fractional inches.**
+## 🧩 Highlights and Tips
 
-- **Input:** `input` (e.g. 2.375), optional `denom`
-- **Returns:** Text like `"2-3/8"` or `"5""`
-- **Example:** `FORMAT_INCH_FRACTION(2.375, 16)` → `"2-3/8""`
-
----
-
-## Notes
-
-- All functions default to reasonable precision or formatting if optional arguments are omitted.
-- These utilities are especially useful in engineering, woodworking, and other measurement-sensitive fields.
+- 🌡 **Temperature Conversions**: `CONVERT_TEMP_C_TO_F` and `CONVERT_TEMP_F_TO_C` handle both simple and precision-controlled temperature transformations.
+- 📏 **Feet-Inches Formatting**: `FORMAT_FEET_AND_INCHES` supports both decimal and fractional inch output for construction-friendly reporting.
+- 📐 **Fraction Simplification**: `FORMAT_INCH_FRACTION` automatically reduces inch fractions to lowest terms for clean, human-readable output.
+- 🔧 **Flexible Precision**: Decimal rounding precision can be specified for cleaner presentation without extra formatting layers.
 
 ---
 
-**📁 File:** `Conversion Excel LAMBDA Suite.txt`  
-**📦 Suite:** Conversion
+## ⚙️ Requirements
 
+- ✅ Modern Excel with LAMBDA and dynamic array support (Office 365 or Excel 2021+).
+- 🚫 No external dependencies or constant sets required.
+
+---
+
+## 📎 File Contents
+
+- `Conversion Excel LAMBDA Suite.txt`: Master definitions file with inline comments and annotated examples.
+- `README.md`: This guide (suitable for GitHub or Obsidian publishing).

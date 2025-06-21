@@ -1,35 +1,48 @@
-# PCT_ Interpolation Utilities Suite
+# 📊 Percentage LAMBDA Suite for Excel
 
-A focused collection of Excel LAMBDA functions for percentage-based calculations, including interpolation, extrapolation, remapping, and display rounding. These utilities are ideal for data normalization, visual scaling, and intuitive relative transformations.
-
-> See `pct_utilities.txt` for complete logic, examples, and edge case handling.
+This suite provides Excel LAMBDA functions for flexible percentage calculations, range normalization, interpolation, scaling, and bidirectional remapping. These tools simplify percentile workflows for modeling, grading systems, dashboards, and dynamic scaling tasks in Excel.
 
 ---
 
-## 🧮 Function Index
+## 📘 Overview
 
-| Function Name | Description |
-|---------------|-------------|
-| `PCT_OF` | Calculates a given percentage of a value. |
-| `PCT_POSITION` | Calculates the relative position of a target value within a range. |
-| `PCT_INTERPOLATE` | Calculates a value within or beyond a range using interpolation. |
-| `PCT_LBOUND` | Solves for the lower bound given interpolant, upper bound, and percentage. |
-| `PCT_UBOUND` | Solves for the upper bound given lbound, interpolant, and percentage. |
-| `PCT_REMAP` | Translates a value from one numerical range to its equivalent position in another range |
-| `PCT_REMAP_ARRAY` | Remaps a list of interpolated values from one numeric range to another, |
+The suite allows users to work seamlessly with percentage-based calculations, including relative positioning within ranges, bidirectional remapping between different value domains, percent-based interpolation, and bound resolution for complex scoring or scaling systems.
 
 ---
 
-## 📘 Usage Notes
+## 📑 Function Index
 
-- Precision is controlled via an optional argument in each function (defaults to 3 decimal places).
-- Input percentages can be whole numbers or decimals; most functions auto-normalize values >1.
-- All interpolations are linear unless otherwise specified.
-- `PCT_REMAP_ARRAY` supports full-column remapping via spillable `BYROW` logic.
-- Most functions do **not clamp** extrapolated results—values outside the expected range are still computed.
+| Function | Summary |
+|---------|---------|
+| `PCT_OF` | Calculates a percentage of a value, accepting decimal or whole-number percent inputs. |
+| `PCT_POSITION` | Calculates the relative position of a target value within a min-max range (returns a 0–1 scale). |
+| `PCT_REMAP` | Remaps a target’s position from one range to a corresponding value in a different output range. |
+| `PCT_REMAP_ARRAY` | Applies `PCT_REMAP` to arrays of values for dynamic range remapping across datasets. |
+| `PCT_RESOLVE` | Attempts to automatically resolve partial percent input into valid proportions (e.g., 0.75 vs 75). |
+| `PCT_LBOUND` | Returns the lower bound (0%) value from a defined range structure. |
+| `PCT_UBOUND` | Returns the upper bound (100%) value from a defined range structure. |
+| `PCT_INTERPOLATE` | Calculates interpolated values between two percent/value pairs (useful for scoring rubrics or partial grading). |
 
 ---
 
-## 📂 Files
+## 🧩 Highlights and Tips
 
-- `pct_utilities.txt`: Full implementation of all `PCT_` LAMBDA functions with in-line documentation.
+- 🔢 **Flexible Percent Input**: `PCT_OF` and `PCT_RESOLVE` accept both decimal and whole-number percentages, reducing input errors.
+- 📈 **Range Positioning**: `PCT_POSITION` converts values into normalized scales for grading, weighting, or visual gauges.
+- 🔄 **Dynamic Scaling**: `PCT_REMAP` and `PCT_REMAP_ARRAY` allow rescaling between arbitrary input/output domains, great for scoring models.
+- 📊 **Interpolation Logic**: `PCT_INTERPOLATE` allows for multi-point percent-based grading or scoring interpolation.
+- 🔧 **Bound Access**: `PCT_LBOUND` and `PCT_UBOUND` extract range limits for downstream model calculations.
+
+---
+
+## ⚙️ Requirements
+
+- ✅ Modern Excel with LAMBDA and dynamic array support (Office 365 or Excel 2021+).
+- 🚫 No external dependencies or constant sets required.
+
+---
+
+## 📎 File Contents
+
+- `Percentage Excel LAMBDA Suite.txt`: Master definitions file with inline comments and annotated examples.
+- `README.md`: This guide (suitable for GitHub or Obsidian publishing).

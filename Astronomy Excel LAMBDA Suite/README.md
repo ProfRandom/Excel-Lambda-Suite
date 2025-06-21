@@ -15,20 +15,34 @@ Each function is self-contained and documented with parameters, expected outputs
 | Function | Summary |
 |---------|---------|
 | `ASTRO_HAB_INDEX` | Calculates a normalized habitability index from orbital distance. |
+| `ASTRO_HABITABLE_ZONES` | Returns habitable zone bands (Z0–Z5) based on stellar luminosity. |
+| `NASTRO_HABITABLE_ZONES` | Alternate wrapper for habitable zone calculation. |
 | `ASTRO_SPECTRAL_DISTRIBUTION` | Distributes stars across spectral types (O–M) based on abundance. |
 | `ASTRO_CALC_TEMP` | Returns interpolated temperature (K) from a spectral subclass (e.g., G7.3). |
 | `ASTRO_TYPE_FROM_TEMP` | Returns subclass from a temperature input (e.g., 5529 K → G7.3). |
 | `ASTRO_DISPLAY_SPECTRAL` | Displays temperature/spans for O3–M9 classes; filtered or full. |
-| `ASTRO_STAR_ATTRIBUTES` | Derives all key stellar parameters from one known value (K, M, etc.). |
-| `ASTRO_HABITABLE_ZONES`, `NASTRO_HABITABLE_ZONES` | Returns zone bands (Z0–Z5) around stars by luminosity. |
+| `ASTRO_STAR_ATTRIBUTES` | Derives stellar parameters (mass, radius, luminosity, lifetime) from any key input. |
 | `ASTRO_STAR_DENSITY_VOLUME` | Computes stellar counts within a radius or volume. |
-| `ASTRO_PLANET_METRICS`, `ASTRO_PLANET_METRICS_SAFETY` | Computes planetary M, R, d, g, v from any valid pair. |
-| `ASTRO_SYNODIC_SOLVER`, `ASTRO_SYNODIC_PQ`, `ASTRO_SYNODIC_PS`, `ASTRO_SYNODIC_QS` | Solve for synodic or sidereal periods between orbiting bodies. |
-| `ASTRO_APPARENT_SOLAR_SIZE` | Calculates angular diameter relative to solar norm. |
-| `ASTRO_ORBIT_CONFIGURATION_INDEX` | Returns a configuration index of two-body orbital symmetry. |
-| `ASTRO_ORBIT_SOLVER`, `ASTRO_ORBIT_AXIS`, `ASTRO_ORBIT_PERIOD`, `ASTRO_ORBIT_SUM_MASSES` | Keplerian two-body system solvers (mass, period, axis). |
-| `ASTRO_SPHERICAL_TO_CARTESIAN`, `ASTRO_CARTESIAN_TO_SPHERICAL` | Converts between spherical and Cartesian coordinates. |
-| `ASTRO_DEGREES_TO_DMS_NUM`, `ASTRO_DEGREES_TO_DMS_TEXT`, `ASTRO_DMS_NUM_TO_DEGREES`, `DEG_DEC_DMS`, `DEG_DMS`, `DEG_DMS_DEC` | Conversions between decimal degrees and sexagesimal formats. |
+| `ASTRO_PLANET_METRICS` | Calculates planetary mass, radius, density, gravity, velocity from any valid input pair. |
+| `ASTRO_PLANET_METRICS_SAFETY` | Error-tolerant variant of `ASTRO_PLANET_METRICS`. |
+| `ASTRO_SYNODIC_SOLVER` | Solves synodic and sidereal period relationships. |
+| `ASTRO_SYNODIC_PQ` | Sidereal P/Q calculator from synodic period. |
+| `ASTRO_SYNODIC_PS` | Sidereal P/S calculator from synodic period. |
+| `ASTRO_SYNODIC_QS` | Sidereal Q/S calculator from synodic period. |
+| `ASTRO_APPARENT_SOLAR_SIZE` | Calculates angular solar diameter relative to observer. |
+| `ASTRO_ORBIT_CONFIGURATION_INDEX` | Computes two-body orbital configuration symmetry index. |
+| `ASTRO_ORBIT_SOLVER` | Full two-body Keplerian solver for mass, period, and axis relationships. |
+| `ASTRO_ORBIT_AXIS` | Calculates semi-major axis from mass and period. |
+| `ASTRO_ORBIT_PERIOD` | Calculates orbital period from mass and axis. |
+| `ASTRO_ORBIT_SUM_MASSES` | Calculates total system mass from period and axis. |
+| `ASTRO_SPHERICAL_TO_CARTESIAN` | Converts spherical coordinates into Cartesian coordinates. |
+| `ASTRO_CARTESIAN_TO_SPHERICAL` | Converts Cartesian coordinates into spherical coordinates. |
+| `ASTRO_DEGREES_TO_DMS_NUM` | Converts decimal degrees to numeric DMS. |
+| `ASTRO_DEGREES_TO_DMS_TEXT` | Converts decimal degrees to text DMS. |
+| `ASTRO_DMS_NUM_TO_DEGREES` | Converts numeric DMS back into decimal degrees. |
+| `DEG_DEC_DMS` | General decimal degree to DMS converter. |
+| `DEG_DMS` | General DMS formatter. |
+| `DEG_DMS_DEC` | General DMS-to-decimal degree converter. |
 
 ---
 
@@ -48,11 +62,11 @@ Each function is self-contained and documented with parameters, expected outputs
 ## ⚙️ Requirements
 
 - ✅ Modern Excel with LAMBDA and dynamic array support (Office 365 or Excel 2021+).
-- 📦 Optional pairing with `ASTROCON_` constants set (not included here).
+- 🚫 No external dependencies or constant sets required.
 
 ---
 
 ## 📎 File Contents
 
-- `astro_lambda_listing.txt`: Master definitions file with inline comments and annotated examples.
+- `Astronomy Excel LAMBDA Suite.txt`: Master definitions file with inline comments and annotated examples.
 - `README.md`: This guide (suitable for GitHub or Obsidian publishing).

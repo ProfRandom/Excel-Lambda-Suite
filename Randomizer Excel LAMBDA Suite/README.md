@@ -1,38 +1,45 @@
-# RND_ Utilities Suite
+# 🎲 Randomizer LAMBDA Suite for Excel
 
-This suite provides a collection of Excel LAMBDA functions for generating random values in various formats—digits, characters, unique sequences, and mixed-case strings. These tools are designed for use in test data creation, randomized workflows, mockup generation, and secure input scaffolding.
-
-> All functions are self-contained, input-validating, and return scalar or array outputs depending on usage.
+This suite provides Excel LAMBDA functions for generating random numbers, random strings, controlled random character mixes, and reproducible seeded randomization. These tools are useful for test data generation, simulations, password creation, sampling, and any spreadsheet model requiring randomness with fine-tuned control.
 
 ---
 
-## 🎲 Function Index
+## 📘 Overview
 
-| Function Name   | Description |
-|-----------------|-------------|
-| `RND_DIGITS`    | Returns a random number with a specified number of digits. |
-| `RND_MIX`       | Generates a random string of mixed-case letters, numbers, and symbols. |
-| `RND_STR`       | Produces a random alphabetic string with configurable case (lower, upper, or mixed). |
-| `RND_UNIQUE`    | Returns a randomized, non-repeating sequence of numbers. |
-| `RND_ID`*       | *(Deprecated alias)* Former name of `RND_MIX`. Retain for compatibility if used previously. |
-| `RND_BY_SEED`     | Generates a deterministic pseudo-random number from a seed using Lehmer RNG. |
-
+The suite includes numeric, alphanumeric, symbol-inclusive, and reproducible randomization options. Functions support length control, seed-driven deterministic output, and non-repeating unique lists, fully integrated with Excel's dynamic array capabilities.
 
 ---
 
-## 📘 Usage Notes
+## 📑 Function Index
 
-- **Validation**: All functions enforce numeric input where appropriate. Invalid types raise `#VALUE!`; invalid ranges raise `#NUM!`.
-- **Defaults**: Length arguments default to 5 where omitted or set to 0.
-- **ASCII Ranges**: Character generation uses ASCII codes via `CHAR()`, supporting a full alphanumeric and symbol set.
-- **Composable Output**: Results may be wrapped with functions like `SORT()`, `TEXT()`, or `LOWER()` as needed.
-- **Functionality Focus**: This suite is for generation, not for statistical analysis or probability-weighted sampling (e.g. `RND_WEIGHTED`, `RND_PROB`)—which may be added in a separate advanced suite.
-- **Deterministic Randomness**: Use `RND_BY_SEED(seed)` for reproducible pseudo-random generation, useful in test automation or seeded shuffling.
-- **Benford Distribution**: For randomization functions based on the Benford Distribution, see the `STAT_` Functions Suite.
-
+| Function | Summary |
+|---------|---------|
+| `RND_DIGITS` | Generates a random whole number with a specified number of digits. |
+| `RND_MIX` | Generates a random string containing a mix of letters, numbers, and symbols. |
+| `RND_STR` | Generates a random string using only alphanumeric characters (letters and numbers). |
+| `RND_BY_SEED` | Produces reproducible random output based on a seed value (deterministic randomization). |
+| `RND_UNIQUE` | Generates a random permutation of distinct items from a list without repetition. |
 
 ---
 
-## 📂 Files
+## 🧩 Highlights and Tips
 
-- `rnd_utils.txt`: Full suite with function definitions, inline documentation, and test examples.
+- 🔢 **Digit Control**: `RND_DIGITS` allows creation of randomized numeric IDs, codes, or test data of any specified length.
+- 🔡 **Mixed String Generation**: `RND_MIX` and `RND_STR` support password-like or display-friendly random strings.
+- 🎯 **Deterministic Randomization**: `RND_BY_SEED` provides stable, reproducible random outputs ideal for simulation models or controlled demos.
+- 🔁 **Unique Random Sampling**: `RND_UNIQUE` enables random shuffling and non-repeating list generation for sampling exercises or randomized trials.
+- 🔐 **Secure Testing**: Useful for random credential creation, test data fabrication, or anonymized mock dataset generation.
+
+---
+
+## ⚙️ Requirements
+
+- ✅ Modern Excel with LAMBDA and dynamic array support (Office 365 or Excel 2021+).
+- 🚫 No external dependencies or constant sets required.
+
+---
+
+## 📎 File Contents
+
+- `Randomizer Excel LAMBDA Suite.txt`: Master definitions file with inline comments and annotated examples.
+- `README.md`: This guide (suitable for GitHub or Obsidian publishing).

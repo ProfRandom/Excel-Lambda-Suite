@@ -1,62 +1,41 @@
-# Epoch Conversion Excel LAMBDA Suite
+# 📅 Epoch Conversion LAMBDA Suite for Excel
 
-This suite contains Excel LAMBDA functions that convert between Unix-style epoch time formats (seconds, milliseconds, etc.) and standard Excel date-time serial values.
-
-Epoch time is widely used in computing as the number of seconds since 1970-01-01 00:00:00 UTC ("the Unix epoch"). Excel’s internal date serial system uses 1900-01-01 as its base (serial value 1), making conversion between the two essential when handling time data across systems.
+This suite offers Excel LAMBDA functions for converting between Gregorian calendar years (including BC/BCE notation) and Holocene Era (HE) / Myndhrean Calendar (MC) years. These tools are ideal for historical modeling, speculative worldbuilding, or working with extended timelines that cross conventional BCE/CE boundaries.
 
 ---
 
-## Included Functions
+## 📘 Overview
 
-### ✅ `EPOCH_SECONDS_TO_SERIAL`
-**Converts epoch seconds to Excel serial date-time.**
-
-- Input: Number of seconds since 1970-01-01 00:00:00 UTC.
-- Output: Excel-compatible serial date-time.
+Each function is designed to robustly handle both numeric and text inputs, parsing standard calendar notations while supporting signed year formats. Error handling is built-in for invalid or ambiguous inputs, and all conversions are fully self-contained for clean spreadsheet integration.
 
 ---
 
-### ✅ `EPOCH_MILLIS_TO_SERIAL`
-**Converts milliseconds since epoch to Excel serial.**
+## 📑 Function Index
 
-- Input: Number of milliseconds since 1970-01-01 00:00:00 UTC.
-- Output: Excel-compatible serial date-time.
-
----
-
-### ✅ `EPOCH_SERIAL_TO_SECONDS`
-**Converts Excel serial to epoch seconds.**
-
-- Input: Excel serial date-time.
-- Output: Number of seconds since 1970-01-01 00:00:00 UTC.
+| Function | Summary |
+|---------|---------|
+| `EPOCH_GREG_TO_HOLO` | Converts Gregorian year (numeric or text format) to Holocene Era (HE). |
+| `EPOCH_HOLO_TO_GREG` | Converts Holocene Era (HE) year into Gregorian year (signed integer). |
 
 ---
 
-### ✅ `EPOCH_SERIAL_TO_MILLIS`
-**Converts Excel serial to epoch milliseconds.**
+## 🧩 Highlights and Tips
 
-- Input: Excel serial date-time.
-- Output: Number of milliseconds since 1970-01-01 00:00:00 UTC.
-
----
-
-### ✅ `EPOCH_OFFSET_DAYS`
-**Returns the number of Excel serial days between Excel's base date and the Unix epoch.**
-
-- Constant function.
-- Output: 25569
+- 🔢 **Flexible Input Parsing**: Accepts either signed numeric years (e.g., `-9600`) or text forms like `"753 BC"`, `"2024 CE"`, `"44 AD"`.
+- 🌍 **Holocene Alignment**: Computes HE = Gregorian + 10,000, supporting continuous time scales that cross prehistoric boundaries.
+- ❌ **Error Handling**: Invalid strings or malformed inputs produce clear Excel `#VALUE!` errors to flag issues.
+- 🛠 **Bidirectional Support**: Both forward (`EPOCH_GREG_TO_HOLO`) and reverse (`EPOCH_HOLO_TO_GREG`) conversions are supported for full interchange.
 
 ---
 
-## Usage Notes
+## ⚙️ Requirements
 
-- These functions account for the offset between Excel and Unix epoch bases (25569 days).
-- Can be used in either UTC or local time depending on your system time interpretation.
-- Useful when importing/exporting time data to/from databases, APIs, or JSON logs.
+- ✅ Modern Excel with LAMBDA and dynamic array support (Office 365 or Excel 2021+).
+- 🚫 No external dependencies or constant sets required.
 
 ---
 
-## Status
+## 📎 File Contents
 
-This suite is complete and production-ready. No external dependencies.
-
+- `Epoch Conversion Excel LAMBDA Suite.txt`: Master definitions file with inline comments and annotated examples.
+- `README.md`: This guide (suitable for GitHub or Obsidian publishing).
