@@ -1,0 +1,738 @@
+/* MATH_LCM_SCALED:
+   Purpose:
+   Computes the least common multiple (LCM) of two decimal values by scaling them to integers.
+   Returns a decimal approximation of the LCM using a tunable precision factor.
+
+   Parameters:
+   - a (required): First decimal input (must be > 0)
+   - b (required): Second decimal input (must be > 0)
+   - precision (optional): Number of decimal digits to use for scaling (default = 6)
+
+   Notes:
+   - Internally multiplies inputs by 10^precision, rounds, and finds LCM as if they were integers.
+   - Result is then scaled back down to reflect original magnitude.
+   - Precision determines the accuracy of approximation and the size of intermediary values.
+   - Returns "#VALUE!" for non-positive inputs.
+
+   Example:
+   MATH_LCM_SCALED(1.618033989, 2.414213562)           → ≈ 177558.1971
+   MATH_LCM_SCALED(1.5, 2.25, 4)                       → ≈ 4.5
+   MATH_LCM_SCALED(0, 5)                               → "#VALUE!"
+*/
+MATH_LCM_SCALED = LAMBDA(a, b, [precision],
+    IF(
+        OR(a <= 0, b <= 0),
+        "#VALUE!",
+        LET(
+            precision, IF(ISOMITTED(precision), 6, precision),
+            scale, 10 ^ precision,
+            /* Fixed scaling factor to convert decimals to integers */
+
+            ascale, ROUND(a * scale, 0),
+            /* Scaled and rounded a */
+
+            bscale, ROUND(b * scale, 0),
+            /* Scaled and rounded b */
+
+            prod, ascale * bscale,
+            /* Product of the scaled values */
+
+            gcd, GCD(ascale, bscale),
+            /* Greatest common divisor */
+
+            xlcm, prod / gcd,
+            /* LCM of the scaled integers */
+
+            result, xlcm / scale,
+            /* Rescale back to original magnitude */
+
+            result
+        )
+    )
+);
+
+
+/* MATH_LCM_SCALED_ARRAY:
+   Purpose:
+   Computes the least common multiple (LCM) of an array of decimal or fractional values.
+   Returns a decimal approximation of the LCM using a specified digit precision.
+
+   Parameters:
+   - array (required): A one- or two-dimensional array of numeric values (all > 0).
+   - precision (optional): Number of decimal digits to use for scaling (default = 6).
+
+   Notes:
+   - All inputs must be strictly positive. Returns "#VALUE!" if any non-positive values are present.
+   - Internally scales all values by 10^precision, rounds to integers, then applies GCD-based LCM.
+   - Uses MAP and REDUCE for vectorized processing and high accuracy.
+   - Scales the result back to reflect original magnitudes.
+   - Particularly useful for harmonizing mixed-ratio systems or periodic sequences.
+
+   Example:
+   MATH_LCM_SCALED_ARRAY({0.5, 1.25, 2})           → 10
+   MATH_LCM_SCALED_ARRAY({1.2, 3.4, 2.1}, 4)       → 428.4
+*/
+MATH_LCM_SCALED_ARRAY = LAMBDA(array, [precision],
+    LET(
+        precision, IF(ISOMITTED(precision), 6, precision),
+        scale, 10 ^ precision,
+
+        flat, TOCOL(array, 3),
+        /* Flatten array to 1D for uniform handling */
+
+        valid, ISNUMBER(flat) * (flat > 0),
+        /* Ensure all values are positive numerics */
+
+        scaled, IF(valid, ROUND(flat * scale, 0), NA()),
+        /* Scale and round each valid entry */
+
+        valid_check, IF(COUNTA(scaled) = COUNT(scaled), TRUE, FALSE),
+        /* Confirm no invalid (NA) entries slipped through */
+
+        output,
+            IF(
+                NOT(valid_check),
+                "#VALUE!",
+                LET(
+                    lcm, REDUCE(1, scaled, LAMBDA(acc, x, (acc * x) / GCD(acc, x))),
+                    lcm / scale
+                )
+            ),
+        output
+    )
+);
+
+
+/* MATH_SPLIT_FRACTION:
+   Purpose:
+   Splits a fractional string (e.g., "3/4") into its numerator and denominator as numbers.
+   Returns a 2-element array in column or row format depending on mode.
+
+   Parameters:
+   - input (required): A string representing a fraction, e.g., "7/16"
+   - mode (optional): 
+       0 = return as vertical (column) array {7;16}  [default]
+       1 = return as horizontal (row) array {7,16}
+
+   Notes:
+   - Returns "#INVALID!" if input is not in a valid "numerator/denominator" format.
+   - Handles only proper fraction strings (no mixed numbers, spaces, or symbols).
+   - Numerator and denominator are returned as numeric values.
+   - Useful for decomposing rational strings into array elements.
+
+   Examples:
+   MATH_SPLIT_FRACTION("7/16") → {7;16}
+   MATH_SPLIT_FRACTION("5/8", 1) → {5,8}
+*/
+MATH_SPLIT_FRACTION = LAMBDA(input, [mode],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),
+        delim_pos, FIND("/", input),
+        valid, ISNUMBER(delim_pos) * (LEN(input) - LEN(SUBSTITUTE(input, "/", "")) = 1),
+        
+        numer_raw, TEXTBEFORE(input, "/"),
+        denom_raw, TEXTAFTER(input, "/"),
+        numer, IFERROR(VALUE(numer_raw), NA()),
+        denom, IFERROR(VALUE(denom_raw), NA()),
+        
+        list, TEXTJOIN("|", , numer, denom),
+        
+        output, IF(
+            NOT(valid) + ISNA(numer) + ISNA(denom),
+            "#INVALID!",
+            SWITCH(
+                mode,
+                0, TOCOL(VALUE(TEXTSPLIT(list, "|"))), // Column array
+                1, TOROW(VALUE(TEXTSPLIT(list, "|")))  // Row array
+            )
+        ),
+        output
+    )
+);
+
+
+/* MATH_FRACTION_TO_DECIMAL:
+   Purpose:
+   Converts a string in fractional form (e.g. "3/4") into a decimal number.
+
+   Parameters:
+   - input (required): A string formatted as "numerator/denominator"
+
+   Returns:
+   - A decimal result of the division, or "#INVALID!" if input is malformed,
+     or "#DIV/0!" if denominator is zero.
+
+   Notes:
+   - Does not support mixed fractions (e.g. "1 3/4") or multiple slashes.
+   - Numerator and denominator must both be valid numbers.
+   - Returns formatted error messages for invalid or edge-case inputs.
+
+   Example:
+   MATH_FRACTION_TO_DECIMAL("3/4") → 0.75
+   MATH_FRACTION_TO_DECIMAL("7/0") → "#DIV/0!"
+   MATH_FRACTION_TO_DECIMAL("hello") → "#INVALID!"
+*/
+MATH_FRACTION_TO_DECIMAL = LAMBDA(input,
+    LET(
+        slash_count, LEN(input) - LEN(SUBSTITUTE(input, "/", "")),
+        is_valid, slash_count = 1,
+        
+        numer_raw, TEXTBEFORE(input, "/"),
+        denom_raw, TEXTAFTER(input, "/"),
+        numer, IFERROR(VALUE(numer_raw), NA()),
+        denom, IFERROR(VALUE(denom_raw), NA()),
+        
+        output,
+            IF(
+                NOT(is_valid) + ISNA(numer) + ISNA(denom),
+                "#INVALID!",
+                IF(denom = 0, "#DIV/0!", numer / denom)
+            ),
+        output
+    )
+);
+
+
+/* MATH_SPLIT_INTEGER_DECIMAL:
+   Purpose:
+   Splits a numeric input into its integer and decimal (mantissa) parts,
+   returning both in a horizontal or vertical array.
+
+   Parameters:
+   - input (required): The numeric value to split.
+   - mode (optional): 
+       0 = return row {int, dec} (default), 
+       1 = return column {int; dec}.
+   - sign (optional): 
+       0 = decimal is always positive (default), 
+       1 = preserve original sign of the decimal portion.
+   - decimals (optional): Number of decimal places to round to (default = 3).
+
+   Returns:
+   A 2-element array of [integer, decimal] in row or column format.
+
+   Notes:
+   - Works with positive or negative numbers.
+   - Decimal part is rounded to the specified precision.
+   - If `sign = 1`, decimal sign matches the input number.
+
+   Example:
+   MATH_SPLIT_INTEGER_DECIMAL(-12.734, 1, 1) → {-12; -0.734}
+*/
+MATH_SPLIT_INTEGER_DECIMAL = LAMBDA(input, [mode], [sign], [decimals],
+    LET(
+        mode, IF(OR(ISOMITTED(mode), mode > 1), 0, mode),         // Default = row
+        sign, IF(OR(ISOMITTED(sign), sign > 1), 0, sign),         // Default = unsigned
+        decimals, IF(OR(ISOMITTED(decimals), decimals = 0), 3, decimals), // Default = 3 digits
+        int_part, TRUNC(input),                                   // Integer portion
+        dec_part, SWITCH(
+            sign,
+            0, ABS(ROUND(input - int_part, decimals)),            // Unsigned decimal
+            1, ROUND(input - int_part, decimals)                  // Signed decimal
+        ),
+        list, TEXTJOIN(" ", , int_part, dec_part),                // Delimited string
+        output, SWITCH(
+            mode,
+            0, TOROW(VALUE(TEXTSPLIT(list, " "))),                // Row format
+            1, TOCOL(VALUE(TEXTSPLIT(list, " ")))                 // Column format
+        ),
+        output
+    )
+);
+
+
+/* MATH_GET_DECIMAL_PART:
+   Purpose:
+   Extracts the fractional (mantissa) portion of a number, optionally preserving sign.
+   Returns a single decimal value.
+
+   Parameters:
+   - input (required): The number to evaluate.
+   - sign (optional): 
+       0 = return absolute decimal portion (default),
+       1 = preserve original sign of decimal part.
+   - precision (optional): Number of decimal places to round to (default = 3).
+
+   Notes:
+   - Useful for isolating the decimal component of floats for formatting or computation.
+   - If input is a whole number, returns 0 (or -0 if sign mode = 1).
+   - Complements MATH_SPLIT_INTEGER_DECIMAL.
+
+   Example:
+   MATH_GET_DECIMAL_PART(-7.326, 1, 3) → -0.326
+*/
+MATH_GET_DECIMAL_PART = LAMBDA(input, [sign], [precision],
+    LET(
+        sign, IF(OR(ISOMITTED(sign), sign > 1), 0, sign),                // Default to unsigned
+        precision, IF(ISOMITTED(precision), 3, precision),               // Default precision = 3
+
+        dec_part, SWITCH(
+            sign,
+            0, ABS(ROUND(input - TRUNC(input), precision)),              // Absolute decimal
+            1, ROUND(input - TRUNC(input), precision)                    // Signed decimal
+        ),
+        dec_part
+    )
+);
+
+
+/* MATH_DIGITAL_ROOT:
+   Purpose:
+   Calculates the digital root of a number—i.e., the iterative digit sum until a single digit remains.
+   Returns a value from 1 to 9, or 0 if the input is 0.
+
+   Parameters:
+   - input (required): A positive integer or decimal.
+     - Decimal points are removed and all digits are summed (e.g., 3.14 → 314).
+     - Negative values are treated as positive.
+
+   Notes:
+   - Common in numerology and checksum validation.
+   - Uses the modulo-9 shortcut: Digital Root = 1 + MOD(n - 1, 9)
+   - Treats input as a string of digits—punctuation is stripped before processing.
+
+   Example:
+   MATH_DIGITAL_ROOT(942) → 6
+   MATH_DIGITAL_ROOT(3.14) → 8
+*/
+MATH_DIGITAL_ROOT = LAMBDA(input,
+    LET(
+        // Decide if input is decimal (< 1) or integer (≥ 1)
+        mode, IF(input < 1, 1, 0),
+
+        // Normalize input: truncate or remove decimal point
+        clean_input, SWITCH(
+            mode,
+            0, TRUNC(input),                         // Integer mode: use only integer part
+            1, VALUE(SUBSTITUTE(input, ".", ""))     // Decimal mode: remove the decimal point
+        ),
+
+        // Sum of digits using MID and SEQUENCE
+        digit_sum, SUMPRODUCT(--MID(clean_input, SEQUENCE(LEN(clean_input)), 1)),
+
+        // Apply digital root formula: 1 + MOD(n - 1, 9)
+        root, IF(digit_sum = 0, 0, 1 + MOD(ABS(digit_sum) - 1, 9)),
+        root
+    )
+);
+
+
+/* MATH_DIGITAL_SUM:
+   Purpose: Calculates the digital subroot (i.e., a single-pass digit sum) of the input number.
+   Returns: A single numeric value representing the sum of digits (typically 1–99+), *not* reduced recursively.
+
+   Parameters:
+   - input (required): The number to evaluate.
+     - May be an integer or decimal.
+     - Decimal point is ignored; all digits are summed.
+
+   Notes:
+   - This is a pure digit sum: it adds all digits once and returns the result.
+   - Contrast with MATH_DIGITAL_ROOT, which reduces the result repeatedly until a single digit is left.
+   - Ignores special numerology cases (e.g., 11, 22, 33 are treated like any other numbers).
+
+   Example:
+   MATH_DIGITAL_SUM(5432) → 14     (5+4+3+2)
+   MATH_DIGITAL_SUM(3.14) → 8      (3+1+4)
+   MATH_DIGITAL_SUM(22)   → 4      (2+2)
+*/
+MATH_DIGITAL_SUM = LAMBDA(input,
+    LET(
+        mode, IF(input < 1, 1, 0),
+        normalized, SWITCH(mode, 0, TRUNC(input), 1, VALUE(SUBSTITUTE(input, ".", ""))),
+        SUMPRODUCT(--MID(normalized, SEQUENCE(LEN(normalized)), 1))
+    )
+);
+
+
+
+
+
+/* MATH_POLYGONAL:
+   Purpose: Returns the nth polygonal (s-gonal) number using the generalized figurate formula.
+   Returns: 
+     - A scalar value (mode 0)
+     - A labeled string (mode 1)
+     - A 2-element array {value, label} (mode 2)
+
+   Parameters:
+   - sides (required): Number of sides in the polygon (e.g. 3 = triangle, 4 = square, etc.)
+   - term (required): The nth term in the polygonal sequence (must be ≥ 1)
+   - mode (optional): Output mode
+       - 0 → value only (default)
+       - 1 → labeled string
+       - 2 → {value, label} as a 2-element array
+
+   Notes:
+   - Formula: P(s, n) = ((s - 2)(n² - n)) / 2 + n
+   - Only valid for s ≥ 3 (triangle and above)
+   - Returns "#ERROR" if inputs are invalid
+   - Helpful in combinatorics, geometry, and number theory teaching contexts
+
+   Examples:
+   MATH_POLYGONAL(3, 5) → 15
+   MATH_POLYGONAL(3, 5, 1) → "15 (5th triangular number)"
+   MATH_POLYGONAL(6, 2, 2) → {12, "2nd hexagonal number"}
+*/
+MATH_POLYGONAL = LAMBDA(sides, term, [mode],
+    LET(
+        mode, IF(ISOMITTED(mode), 0, mode),
+        valid, AND(sides >= 3, term >= 1),
+
+        value, ((sides - 2) * (term ^ 2 - term)) / 2 + term,
+
+        suffix, CHOOSE(
+            IF(AND(term > 10, term < 20), 4, MOD(term, 10) + 1),
+            "st", "nd", "rd", "th", "th", "th", "th", "th", "th", "th"
+        ),
+
+        label_text, CHOOSE(
+            sides,
+            "#", "#", "triangular", "square", "pentagonal", "hexagonal",
+            "heptagonal", "octagonal", "nonagonal", "decagonal",
+            "hendecagonal", "dodecagonal"
+        ),
+
+        label, TEXT(value, "0") & " (" & term & suffix & " " & label_text & " number)",
+
+        array_result, CHOOSE({1, 2}, value, label),
+
+        output,
+            IF(NOT(valid),
+                "#ERROR",
+                IF(mode = 0,
+                    value,
+                    IF(mode = 1,
+                        label,
+                        IF(mode = 2,
+                            array_result,
+                            "#MODE?"
+                        )
+                    )
+                )
+            ),
+        output
+    )
+);
+
+
+
+/* MATH_QUADRATIC_REAL_ROOTS:
+   Purpose:
+   Calculates the real roots of a quadratic polynomial ax² + bx + c = 0 using the quadratic formula.
+
+   Returns:
+   - A single root if the discriminant is 0 (as a number or formatted text).
+   - Two real roots as a vertical array if discriminant > 0.
+   - "NONE" if no real roots exist.
+   - "#DIV/0!" if a = 0 (invalid for quadratic).
+
+   Parameters:
+   - a (required): Coefficient of x²
+   - b (required): Coefficient of x
+   - c (required): Constant term
+   - precision (optional): Decimal places to round/format (default = 3)
+   - mode (optional): Output format
+       0 = raw numbers (default)
+       1 = fixed-point text
+       2 = label text (e.g., "1 real root: -2.000")
+
+   Notes:
+   - Discriminant = b² - 4ac
+   - Complex roots are not supported.
+   - Division by zero is flagged if a = 0.
+
+   Example:
+   MATH_QUADRATIC_REAL_ROOTS(1, -3, 2) → {2; 1}
+   MATH_QUADRATIC_REAL_ROOTS(1, 2, 1) → -1
+   MATH_QUADRATIC_REAL_ROOTS(1, 0, 1) → "NONE"
+*/
+MATH_QUADRATIC_REAL_ROOTS = LAMBDA(a, b, c, [precision], [mode],
+    LET(
+        precision, IF(ISOMITTED(precision), 3, precision),
+        mode, IF(ISOMITTED(mode), 0, mode),
+        discrim, b^2 - 4*a*c,
+
+        is_valid, a <> 0,
+        denom, 2 * a,
+        sqrt_d, IF(discrim >= 0, SQRT(discrim), NA()),
+        r_1, IF(discrim >= 0, (-b + sqrt_d) / denom, NA()),
+        r_2, IF(discrim > 0, (-b - sqrt_d) / denom, NA()),
+
+        fix_1, TEXT(r_1, "0." & REPT("0", precision)),
+        fix_2, TEXT(r_2, "0." & REPT("0", precision)),
+
+        label,
+            IF(discrim < 0, "NONE",
+            IF(discrim = 0, 
+                "1 real root: " & fix_1,
+                "2 real roots: " & fix_1 & " and " & fix_2
+            )),
+
+        array_numeric, VSTACK(ROUND(r_1, precision), ROUND(r_2, precision)),
+        array_text, VSTACK(fix_1, fix_2),
+
+        numeric_out, IF(discrim < 0, "NONE",
+            IF(discrim = 0, ROUND(r_1, precision), array_numeric)
+        ),
+
+        text_out, IF(discrim < 0, "NONE",
+            IF(discrim = 0, fix_1, array_text)
+        ),
+
+        result, IF(
+            NOT(is_valid),
+            "#DIV/0!",
+            SWITCH(mode,
+                0, numeric_out,
+                1, text_out,
+                2, label,
+                "#MODE?"
+            )
+        ),
+        result
+    )
+);
+
+
+/* MATH_NORMALIZE_DECIMAL:
+   Purpose:
+   Scales a positive number down by a power of 10 so it becomes a decimal < 1,
+   preserving its significant digits.
+
+   Returns:
+   - A decimal value between 0 and 1 (e.g., 123 → 0.123).
+   - If the input is already less than 1, it is returned unchanged.
+   - Returns "#NUM!" for negative input.
+
+   Parameters:
+   - input (required): A positive number to normalize.
+   - precision (optional): Number of decimal places to round to.
+       - Default: number of digits in integer portion + 3.
+
+   Notes:
+   - Designed for use in formatting or proportional rescaling.
+   - Does not support negative values or complex numbers.
+   - Automatically scales only if input ≥ 1.
+
+   Example:
+   MATH_NORMALIZE_DECIMAL(12345) → 0.12345
+   MATH_NORMALIZE_DECIMAL(0.005) → 0.005
+*/
+MATH_NORMALIZE_DECIMAL = LAMBDA(input, [precision],
+    LET(
+        is_invalid, input < 0,
+        default_prec, LEN(TEXT(INT(ABS(input)), "0")) + 3,
+        prec, IF(ISOMITTED(precision), default_prec, precision),
+
+        scaled, IF(input < 1, input, input / 10 ^ (INT(LOG10(input)) + 1)),
+
+        result, ROUND(scaled, prec),
+
+        IF(is_invalid, "#NUM!", result)
+    )
+);
+
+
+/* MATH_APPROXIMATE_FRACTION:
+   Purpose:
+   Converts a decimal number into a fractional text approximation,
+   optionally formatted as a mixed number.
+
+   Returns:
+   - A string representing the approximate fraction (e.g., "7/8" or "2-3/8").
+   - Output is a string, not a numeric value.
+
+   Parameters:
+   - input (required): The decimal number to approximate.
+   - mode (optional): Format of result
+       0 = return as a pure fraction (e.g., "7/8") [default]
+       1 = return as a mixed number if applicable (e.g., "2-3/8")
+   - prec (optional): Number of digit placeholders for the denominator
+       - Default = 3 (e.g., max denominator = 999)
+       - prec = 2 → format like "?/??" (up to 2-digit denominators)
+
+   Notes:
+   - Uses Excel’s TEXT() to approximate to nearest fractional equivalent.
+   - Mixed fractions include whole number only if it's nonzero.
+   - Result is not mathematically precise but visually useful.
+   - Negative values are preserved in final string (e.g., "-2-3/8").
+
+   Example:
+   MATH_APPROXIMATE_FRACTION(2.375, 1, 2) → "2-3/8"
+   MATH_APPROXIMATE_FRACTION(0.333, 0, 2) → "1/3"
+*/
+MATH_APPROXIMATE_FRACTION = LAMBDA(input, [mode], [prec],
+    LET(
+        mode, IF((mode > 1) + (ISOMITTED(mode)), 0, mode),
+        prec, IF(ISOMITTED(prec), 3, prec),
+        fmt, CONCAT("?/", REPT("?", prec)),
+        /* Create format string like "?/???" for up to 3-digit denominator */
+        
+        fraction, SWITCH(
+            mode,
+            0, TEXT(input, fmt),             /* Full decimal as pure fraction */
+            1, TEXT(MOD(input, 1), fmt)      /* Just the fractional part */
+        ),
+
+        output, SWITCH(
+            mode,
+            0, fraction,
+            1, IF(
+                QUOTIENT(input, 1) <> 0,
+                TEXTJOIN("-", , QUOTIENT(input, 1), fraction),
+                fraction
+            )
+        ),
+        output
+    )
+);
+
+/* MATH_LIST_DIVISORS:
+   Purpose:
+   Returns all positive integer divisors (factors) of a given number.
+
+   Returns:
+   - A vertical array of divisors (default),
+   - A horizontal array (mode = 1),
+   - A string representing an array constant (mode = 2).
+
+   Parameters:
+   - input (required): A positive integer to analyze.
+   - mode (optional):
+       0 = vertical array (default),
+       1 = horizontal array,
+       2 = array constant string.
+
+   Notes:
+   - Input must be a positive whole number. Non-integer or ≤ 0 returns "#NUM!".
+   - Output is sorted in ascending order.
+   - Mode 2 is useful when embedding array constants inside other formulas.
+
+   Examples:
+   MATH_LIST_DIVISORS(12)       → {1; 2; 3; 4; 6; 12}
+   MATH_LIST_DIVISORS(12, 1)    → {1, 2, 3, 4, 6, 12}
+   MATH_LIST_DIVISORS(12, 2)    → "{1, 2, 3, 4, 6, 12}"
+*/
+MATH_LIST_DIVISORS = LAMBDA(input, [mode],
+    LET(
+        output_mode, IF(ISOMITTED(mode) + (mode < 0) + (mode > 2), 0, mode),
+        is_valid, AND(ISNUMBER(input), input > 0, input = INT(input)),
+        nums, SEQUENCE(input),
+        divisors, SORT(FILTER(nums, MOD(input, nums) = 0)),
+        result, SWITCH(
+            output_mode,
+            0, divisors,
+            1, TRANSPOSE(divisors),
+            2, "{" & TEXTJOIN(", ", , divisors) & "}",
+            "#MODE?"
+        ),
+        IF(is_valid, result, "#NUM!")
+    )
+);
+
+
+/* MATH_METALLIC_MEAN:
+   Purpose:
+   Calculates the nth metallic mean, a class of irrational proportions generalizing
+   the golden ratio. Optionally returns the reciprocal of the value.
+
+   Returns:
+   - A scalar decimal value representing the metallic mean or its reciprocal.
+
+   Parameters:
+   - order (required): A positive integer indicating the metallic order:
+       1 = golden mean, 2 = silver, 3 = bronze, etc.
+   - return_type (optional):
+       0 = return mean [default],
+       1 = return reciprocal of mean.
+   - precision (optional): Number of decimal places to round result (default = 3).
+
+   Notes:
+   - Metallic mean formula: Mₙ = (n + √(n² + 4)) / 2
+     (equivalently: SQRT(1 + (n² / 4)) + n/2)
+   - Reciprocals are useful for aspect ratios and layout proportions.
+   - Input order is truncated to integer.
+   - Returns "#NUM!" for negative or non-numeric orders.
+
+   Examples:
+   MATH_METALLIC_MEAN(1) → 1.618   (Golden Ratio)
+   MATH_METALLIC_MEAN(3) → 2.303   (Bronze Ratio)
+   MATH_METALLIC_MEAN(5, 1) → 0.341 (Reciprocal of 5th mean)
+*/
+MATH_METALLIC_MEAN = LAMBDA(order, [return_type], [precision],
+    LET(
+        is_valid, AND(ISNUMBER(order), order >= 0),
+        return_type, IF(
+            OR(ISOMITTED(return_type), return_type < 0, return_type > 1),
+            0,
+            return_type
+        ),
+        precision, IF(ISOMITTED(precision), 3, precision),
+        n, TRUNC(order),
+        /* Compute metallic mean using rearranged formula */
+        mean, SQRT(1 + (n ^ 2 / 4)) + (n / 2),
+        result, SWITCH(return_type, 0, mean, 1, 1 / mean, "#TYPE?"),
+        IF(is_valid, ROUND(result, precision), "#NUM!")
+    )
+);
+
+
+/* MATH_FORMAT_AS_FRACTION:
+
+   Purpose:
+   Converts a decimal number into a reduced fraction string using a fixed denominator base.
+
+   Returns:
+   - A text string in the form "n/d", where both values are reduced by GCD.
+   - "#NONE!" if the numerator rounds to 0.
+   - "#VALUE!" if input is non-numeric.
+   - Uses default denominator of 64 if not specified or invalid.
+
+   Parameters:
+   - input (required): A decimal number to convert (e.g., 0.625).
+   - denom (optional): Base denominator to use (default = 64). The result is reduced via GCD.
+
+   Notes:
+   - The `denom` sets the resolution of the approximation (e.g., 8 for eighths, 64 for fine granularity).
+   - Returns only proper or improper fractions — no mixed numbers.
+   - Useful for display formatting or rational approximation in table cells.
+
+   Examples:
+   MATH_FORMAT_AS_FRACTION(0.625)        → "5/8"
+   MATH_FORMAT_AS_FRACTION(0.8125, 16)   → "13/16"
+   MATH_FORMAT_AS_FRACTION(0, 10)        → "#NONE!"
+   MATH_FORMAT_AS_FRACTION("apple")      → "#VALUE!"
+*/
+
+
+MATH_FORMAT_AS_FRACTION = LAMBDA(input, [denom],
+    LET(
+        is_valid_input, ISNUMBER(input),  // Validate input is numeric
+
+        // Handle optional denominator parameter
+        base_denom_raw, IF(ISOMITTED(denom), 64, denom),
+        base_denom, IF(base_denom_raw < 1, 64, TRUNC(base_denom_raw)),
+
+        // Scale numerator to specified denominator
+        raw_numer, TRUNC(input * base_denom),
+
+        // Reduce fraction by GCD
+        gcd, GCD(raw_numer, base_denom),
+        numer_final, raw_numer / gcd,
+        denom_final, base_denom / gcd,
+
+        // Handle zero numerator and build output string
+        result, IF(
+            numer_final = 0,
+            "#NONE!",
+            TEXT(numer_final, "0") & "/" & TEXT(denom_final, "0")
+        ),
+
+        // Final return with input validation
+        IF(is_valid_input, result, "#VALUE!")
+    )
+);
+
+
+

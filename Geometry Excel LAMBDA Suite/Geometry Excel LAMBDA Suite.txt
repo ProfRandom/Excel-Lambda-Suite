@@ -1,0 +1,243 @@
+/* GEOM_ECCENTRICITY:
+   Purpose:
+   Calculates the eccentricity of an ellipse from two axis lengths, regardless of input order.
+
+   Returns:
+   - A decimal between 0 and 1 representing the ellipse’s eccentricity.
+   - "#VALUE!" if inputs are invalid or non-positive.
+
+   Parameters:
+   - major (required): One axis of the ellipse (can be major or minor).
+   - minor (required): The other axis of the ellipse.
+   - precision (optional): Number of decimal places to round to (default = 6).
+
+   Notes:
+   - Automatically assigns a = longer axis, b = shorter axis.
+   - Eccentricity formula: e = √(1 - (b² / a²))
+   - e = 0 → perfect circle, e → 1 → highly elongated ellipse.
+
+   Examples:
+   GEOM_ECCENTRICITY(10, 6) → 0.8
+   GEOM_ECCENTRICITY(5, 5) → 0.0
+*/
+
+GEOM_ECCENTRICITY = LAMBDA(major, minor, [precision],
+    LET(
+        is_valid, AND(ISNUMBER(major), ISNUMBER(minor), major > 0, minor > 0),
+        prec, IF(ISOMITTED(precision), 6, precision),
+        a, MAX(major, minor),
+        b, MIN(major, minor),
+        ecc_raw, SQRT(1 - (b / a) ^ 2),
+        result, ROUND(ecc_raw, prec),
+        IF(is_valid, result, "#VALUE!")
+    )
+);
+
+/* GEOM_SEMI_MINOR:
+   Purpose:
+   Calculates the semi-minor axis (b) of an ellipse from the semi-major axis (a) and eccentricity (e).
+
+   Returns:
+   - A decimal value representing the semi-minor axis.
+   - "#VALUE!" if inputs are invalid (e.g., a ≤ 0 or e ≥ 1).
+
+   Parameters:
+   - major (required): Length of the semi-major axis (a), must be positive.
+   - eccentricity (required): Eccentricity (e), must satisfy 0 ≤ e < 1.
+   - precision (optional): Number of decimal places for rounding (default = 6).
+
+   Formula:
+   b = a * √(1 - e²)
+
+   Notes:
+   - Eccentricity of 0 yields a circle (b = a).
+   - Does not compute for degenerate (e = 1) or invalid conics.
+
+   Example:
+   GEOM_SEMI_MINOR(10, 0.8) → 6.000000
+*/
+
+GEOM_SEMI_MINOR = LAMBDA(major, eccentricity, [precision],
+    LET(
+        is_valid,
+            AND(ISNUMBER(major), ISNUMBER(eccentricity), major > 0, eccentricity >= 0, eccentricity < 1),
+        prec, IF(ISOMITTED(precision), 6, precision),
+        semi_minor, major * SQRT(1 - eccentricity ^ 2),
+        result, ROUND(semi_minor, prec),
+        IF(is_valid, result, "#VALUE!")
+    )
+);
+
+/* GEOM_ELLIPSE_FROM_AE:
+   Purpose:
+   Returns 17 key geometric attributes of an ellipse given its semi-major axis (a) and eccentricity (e).
+
+   Returns:
+   A two-column array: one with attribute labels and one with corresponding numeric values.
+
+   Parameters:
+   - a (required): Semi-major axis length (must be positive).
+   - e (required): Eccentricity of the ellipse (0 ≤ e < 1).
+   - precision (optional): Decimal places to round output (default = 3, capped at 12).
+
+   Notes:
+   - Includes values such as semi-minor axis, linear eccentricity, periapsis, apoapsis, directrix, perimeter, and more.
+   - Uses Ramanujan's approximation for perimeter.
+   - Returns "#VALUE!" if input is invalid.
+
+   Example:
+   GEOM_ELLIPSE_FROM_AE(100, 0.5, 2)
+*/
+
+GEOM_ELLIPSE_FROM_AE = LAMBDA(a, e, [precision],
+    LET(
+        is_valid, AND(ISNUMBER(a), ISNUMBER(e), a > 0, e >= 0, e < 1),
+        precision, MIN(IF(ISOMITTED(precision), 3, precision), 12),
+
+        // Metric labels
+        labels, {
+            "semi-major axis (a)";
+            "semi-minor axis (b)";
+            "linear eccentricity (c)";
+            "apoapsis (d)";
+            "eccentricity (e)";
+            "flattening (f)";
+            "periapsis (g)";
+            "principal axis (h)";
+            "major axis (i)";
+            "minor axis (j)";
+            "semi-latus rectum (l)";
+            "directrix (m)";
+            "focal parameter (n)";
+            "perimeter (p)";
+            "latus rectum (q)";
+            "ratio of apsides (r = d / g)";
+            "s = n - g"
+        },
+
+        // Calculations
+        b, a * SQRT(1 - e ^ 2),
+        c, SQRT(a ^ 2 - b ^ 2),
+        d, a * (1 + e),
+        f, (a - b) / a,
+        g, a * (1 - e),
+        h, 2 * a * e,
+        i, 2 * a,
+        j, 2 * b,
+        l, b ^ 2 / a,
+        m, a / e,
+        n, b ^ 2 / c,
+        h_ram, ((a - b) / (a + b)) ^ 2,
+        p, PI() * (a + b) * (1 + (3 * h_ram) / (10 + SQRT(4 - 3 * h_ram))),
+        q, j ^ 2 / i,
+        r, (1 + e) / (1 - e),
+        s, n - g,
+
+        // Compose attributes
+        attribs, TEXTJOIN(",", , a, b, c, d, e, f, g, h, i, j, l, m, n, p, q, r, s),
+        fmt, "0." & REPT("#", precision),
+        values, TRANSPOSE(VALUE(TEXT(TEXTSPLIT(attribs, ","), fmt))),
+
+        // Output
+        IF(is_valid, CHOOSE({1, 2}, labels, values), "#VALUE!")
+    )
+);
+
+/* GEOM_ELLIPSE_FROM_AXES:
+   Purpose:
+   Calculates 17 key geometric and orbital parameters of an ellipse given the semi-major and semi-minor axes.
+   Returns:
+   A 2-column array with labels and corresponding computed values.
+
+   Parameters:
+   - a (required): Semi-major axis (must be ≥ b and > 0).
+   - b (required): Semi-minor axis (must be > 0).
+   - precision (optional): Decimal places to round outputs (default = 3, capped at 12).
+
+   Notes:
+   - Assumes valid ellipse inputs (a ≥ b > 0). No internal reordering.
+   - Uses Ramanujan's second approximation to estimate perimeter.
+   - Includes outputs such as apoapsis, periapsis, eccentricity, directrix, focal distance, and more.
+
+   Example:
+   GEOM_ELLIPSE_FROM_AXES(10, 8) → labeled array with 17 derived attributes.
+*/
+
+GEOM_ELLIPSE_FROM_AXES = LAMBDA(a, b, [precision],
+    LET(
+        is_valid, AND(ISNUMBER(a), ISNUMBER(b), a > 0, b > 0, a >= b),
+        precision, MIN(IF(ISOMITTED(precision), 3, precision), 12),
+
+        labels, {
+            "semi-major axis (a)";
+            "semi-minor axis (b)";
+            "linear eccentricity (c)";
+            "apoapsis (d)";
+            "eccentricity (e)";
+            "flattening (f)";
+            "periapsis (g)";
+            "principal axis (h)";
+            "major axis (i)";
+            "minor axis (j)";
+            "semi-latus rectum (l)";
+            "directrix (m)";
+            "focal parameter (n)";
+            "perimeter (p)";
+            "latus rectum (q)";
+            "ratio of apsides (r = d / g)";
+            "s = n - g"
+        },
+
+        e, SQRT(1 - (b ^ 2 / a ^ 2)),
+        c, SQRT(a ^ 2 - b ^ 2),
+        d, a * (1 + e),
+        f, (a - b) / a,
+        g, a * (1 - e),
+        h, 2 * a * e,
+        i, 2 * a,
+        j, 2 * b,
+        l, b ^ 2 / a,
+        m, a / e,
+        n, b ^ 2 / c,
+        h_ram, ((a - b) / (a + b)) ^ 2,
+        p, PI() * (a + b) * (1 + (3 * h_ram) / (10 + SQRT(4 - 3 * h_ram))),
+        q, j ^ 2 / i,
+        s, n - g,
+        r, (1 + e) / (1 - e),
+
+        attribs, TEXTJOIN(",", , a, b, c, d, e, f, g, h, i, j, l, m, n, p, q, r, s),
+        fmt, "0." & REPT("#", precision),
+        values, TRANSPOSE(VALUE(TEXT(TEXTSPLIT(attribs, ","), fmt))),
+        
+        IF(is_valid, CHOOSE({1, 2}, labels, values), "#VALUE!")
+    )
+);
+
+/* GEOM_SPHERE_RADIUS_FROM_VOLUME:
+   Purpose:
+   Calculates the radius of a sphere given its volume using the inverse of the standard volume formula.
+
+   Returns:
+   A single numeric value representing the sphere's radius, rounded to the specified precision.
+
+   Parameters:
+   - v (required): Volume of the sphere (must be a positive number).
+   - prec (optional): Number of decimal places to round the result to (default = 3, capped at 12).
+
+   Notes:
+   - Uses the formula: r = ∛((3 × V) / (4π)).
+   - If precision is omitted or invalid, defaults to 3.
+   - Does not currently validate for non-numeric or negative input.
+
+   Example:
+   GEOM_SPHERE_RADIUS_FROM_VOLUME(113.097) → 3.000
+*/
+
+GEOM_SPHERE_RADIUS_FROM_VOLUME = LAMBDA(v, [prec],
+    LET(
+        prec, MIN(IF(ISOMITTED(prec) + (prec < 0), 3, prec), 12),
+        r, POWER((3 * v) / (4 * PI()), 1 / 3),
+        ROUND(r, prec)
+    )
+);
+
