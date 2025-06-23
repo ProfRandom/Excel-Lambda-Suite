@@ -40,9 +40,6 @@ Each function is self-contained and documented with parameters, expected outputs
 | `ASTRO_DEGREES_TO_DMS_NUM` | Converts decimal degrees to numeric DMS. |
 | `ASTRO_DEGREES_TO_DMS_TEXT` | Converts decimal degrees to text DMS. |
 | `ASTRO_DMS_NUM_TO_DEGREES` | Converts numeric DMS back into decimal degrees. |
-| `DEG_DEC_DMS` | General decimal degree to DMS converter. |
-| `DEG_DMS` | General DMS formatter. |
-| `DEG_DMS_DEC` | General DMS-to-decimal degree converter. |
 
 ---
 

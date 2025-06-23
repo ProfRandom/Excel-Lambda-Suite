@@ -1489,45 +1489,7 @@ LAMBDA(x, y, z, prec,
 );
 
 
-DEG_DEC_DMS = LAMBDA(DecimalDegrees,
-    LET(
-        Deg, TRUNC(DecimalDegrees),
-        FracPortion, ABS(DecimalDegrees - Deg),
-        Minutes, FracPortion * 60,
-        Min_part, TRUNC(Minutes) / 100,
-        IntMin, INT(Minutes),
-        FracMin, ABS(Minutes - IntMin),
-        Seconds, FracMin * 60,
-        sec_part, Seconds / 10000,
-        output, Deg + Min_part + sec_part,
-        FIXED(output, 7)
-    )
-);
 
-DEG_DMS = LAMBDA(DecimalDegrees, [precision],
-
-LET(
-    decprec, IF(ISOMITTED(Precision), 3, Precision),
-    Deg, TRUNC(DecimalDegrees),
-    FracPortion, ABS(DecimalDegrees - Deg),
-    Minutes, FracPortion * 60,
-    IntMin, INT(Minutes),
-    FracMin, ABS(Minutes - IntMin),
-    Seconds, FracMin * 60,
-    Deg & "° " & IntMin & CHAR(39) & CHAR(32) & FIXED(Seconds, decprec) & CHAR(34)
-)
-);
-
-DEG_DMS_DEC = LAMBDA(input,
-    LET(
-        degrees, TRUNC(input),
-        minutes, TRUNC((input - degrees) * 100),
-        fractional_seconds, ((input * 100) - TRUNC(input * 100)) / 0.6,
-        /*  */
-        result, degrees + ((minutes + fractional_seconds) / 60),
-        result
-    )
-);
 
 /* ASTRO_ORBIT_AXIS
    Purpose:
