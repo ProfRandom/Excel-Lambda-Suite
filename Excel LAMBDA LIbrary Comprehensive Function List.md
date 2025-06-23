@@ -1,3 +1,13 @@
+# Excel LAMBDA Suite — Complete Function Reference
+
+> *Master Catalog of All Included Functions*  
+> *Version: [insert version if you want]*
+
+This document provides a comprehensive listing of all LAMBDA functions included in this repository, organized by functional suite.  
+For detailed usage, examples, and documentation, refer to each suite's respective `README.md` file.
+
+---
+
 # Astronomy Excel LAMBDA Suite
 
 | Function | Summary |
@@ -28,9 +38,7 @@
 | `ASTRO_DEGREES_TO_DMS_NUM` | Converts decimal degrees to numeric DMS. |
 | `ASTRO_DEGREES_TO_DMS_TEXT` | Converts decimal degrees to text DMS. |
 | `ASTRO_DMS_NUM_TO_DEGREES` | Converts numeric DMS back into decimal degrees. |
-| `DEG_DEC_DMS` | General decimal degree to DMS converter. |
-| `DEG_DMS` | General DMS formatter. |
-| `DEG_DMS_DEC` | General DMS-to-decimal degree converter. |
+
 
 # Conversion Excel LAMBDA Suite
  
@@ -157,3 +165,49 @@
 | `TIME_MIL24_TO_MIL12` | Converts 24-hour military format back to 12-hour military format. |
 | `TIME_MIL12_SHIFT` | Applies offset to 12-hour military time with wraparound adjustment. |
 | `TIME_STD12_SHIFT` | Applies offset to standard 12-hour AM/PM clock time with wraparound correction. |
+
+# Mathematics Excel LAMBDA Suite
+
+| Function | Summary |
+|---------|---------|
+| `MATH_LCM_SCALED` | Computes scaled least common multiple (LCM) of two decimal values using precision scaling. |
+| `MATH_LCM_SCALED_ARRAY` | Computes LCM across an array of decimal or fractional values with precision scaling. |
+| `MATH_SPLIT_FRACTION` | Splits a fraction string (e.g. `"3/4"`) into its numerator and denominator as a 2-element array. |
+| `MATH_FRACTION_TO_DECIMAL` | Converts a fraction string into a decimal value. |
+| `MATH_SPLIT_INTEGER_DECIMAL` | Separates a number into its integer and fractional parts, returning both as an array. |
+| `MATH_GET_DECIMAL_PART` | Extracts the decimal portion of a number, optionally signed. |
+| `MATH_DIGITAL_ROOT` | Computes the digital root (iterative digit sum) of a number. |
+| `MATH_DIGITAL_SUM` | Computes the simple (single-pass) sum of all digits of a number. |
+| `MATH_POLYGONAL` | Returns the nth polygonal (figurate) number for any sided polygon (triangular, square, hexagonal, etc). |
+| `MATH_QUADRATIC_REAL_ROOTS` | Calculates the real roots of a quadratic equation using the quadratic formula. |
+| `MATH_NORMALIZE_DECIMAL` | Normalizes any number to a decimal < 1, preserving significant digits. |
+| `MATH_APPROXIMATE_FRACTION` | Approximates a decimal as a fraction or mixed number string. |
+| `MATH_LIST_DIVISORS` | Returns all positive integer divisors of a given number as an array or formatted string. |
+| `MATH_METALLIC_MEAN` | Calculates the nth metallic mean (golden, silver, bronze, etc) with optional reciprocal. |
+| `MATH_FORMAT_AS_FRACTION` | Converts a decimal to a simplified fraction string based on a fixed denominator base. |
+
+# Geometry Excel LAMBDA Suite
+
+| Function | Summary |
+|---------|---------|
+| `GEOM_ECCENTRICITY` | Calculates the eccentricity of an ellipse from any two axis lengths (automatically assigns major and minor). |
+| `GEOM_SEMI_MINOR` | Computes the semi-minor axis length from semi-major axis and eccentricity. |
+| `GEOM_ELLIPSE_FROM_AE` | Returns 17 key ellipse parameters given semi-major axis and eccentricity. |
+| `GEOM_ELLIPSE_FROM_AXES` | Returns 17 key ellipse parameters given both axes lengths. |
+| `GEOM_SPHERE_RADIUS_FROM_VOLUME` | Calculates sphere radius from known volume. |
+
+
+--- 
+
+[... and continue for all your other suites exactly as you have it ...]
+
+---
+
+## 📄 About This Catalog
+
+This index is provided as a **quick reference master list** of available functions across all Excel LAMBDA suites included in this repository.
+
+- Full documentation, parameter descriptions, and usage examples are provided in each suite’s own README file.
+- Functions are fully self-contained and require no external dependencies beyond native Excel LAMBDA support.
+
+For questions or feedback, see repository contact information.
