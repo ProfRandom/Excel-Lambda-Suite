@@ -118,6 +118,7 @@ For detailed usage, examples, and documentation, refer to each suite's respectiv
 
 # Statistical Excel LAMBDA Suite
 
+| Function | Summary |
 |---------|---------|
 | `STAT_QNTILES` | Calculates quantiles or labeled percentile cuts with bin-mode slicing and precision control. |
 | `STAT_FREQ_TABLE` | Generates frequency counts for categorical data ranges. |
