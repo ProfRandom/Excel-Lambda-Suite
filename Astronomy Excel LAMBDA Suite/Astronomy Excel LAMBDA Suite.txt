@@ -1015,50 +1015,6 @@ ASTRO_PLANET_METRICS = LAMBDA(mode, param_1, param_2, [prec],
   )
 );
 
-// ASTRO_SYNODIC = 
-// LAMBDA(p, q, prec,
-//   LET(
-//     result,
-//     IF(p = q,
-//        NA(),
-//        LET(
-//          num, p * q,
-//          den, ABS(p - q),
-//          raw, num / den,
-//          ROUND(raw, prec)
-//        )
-//     ),
-//     result
-//   )
-// );
-
-// ASTRO_SYNODIC_SOLVED =
-// LAMBDA(val_1, val_2, [mode], [prec],
-//   LET(
-//     mode, IF(ISOMITTED(mode), "pq", IF(mode = "", "pq", mode)),
-//     prec, IF(ISOMITTED(prec), 4, prec),
-
-//     p, IF(OR(mode="pq", mode="ps"), val_1, NA()),
-//     q, IF(mode="pq", val_2, IF(mode="qs", val_1, NA())),
-//     s, IF(OR(mode="ps", mode="qs"), val_2, NA()),
-
-//     a, IF(AND(ISNUMBER(p), ISNUMBER(q)), MAX(p, q), p),
-//     b, IF(AND(ISNUMBER(p), ISNUMBER(q)), MIN(p, q), q),
-
-//     result,
-//       SWITCH(
-//         mode,
-//         "pq", IF(a = b, NA(), ROUND((a * b) / (a - b), prec)),
-//         "ps", IF(OR(NOT(ISNUMBER(a)), NOT(ISNUMBER(s))), NA(),
-//                  ROUND((a * s) / (a - s), prec)),
-//         "qs", IF(OR(NOT(ISNUMBER(b)), NOT(ISNUMBER(s))), NA(),
-//                  ROUND((b * s) / (b - s), prec)),
-//         NA()
-//       ),
-//     result
-//   )
-// );
-
 /* ASTRO_SYNODIC_SOLVER
    Purpose:
    A comprehensive synodic period solver that calculates the third value (P, Q, or S)
