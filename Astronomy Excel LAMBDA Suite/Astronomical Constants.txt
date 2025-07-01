@@ -1,3 +1,8 @@
+# Version: 1.2.0
+# Last updated: 2025-06-30
+# Summary: Refactored AU.KM → AU_KM and standardized unit naming
+
+
 AU_KM = LAMBDA(AU_M() / 1000);
 AU_M = LAMBDA(149597870700);
 DAY_EPH_H = LAMBDA(86400 / 3600);
