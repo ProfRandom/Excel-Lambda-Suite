@@ -21,24 +21,24 @@
    ASTRO_HAB_INDEX(2.5, 1.0)         → 1.628
    ASTRO_HAB_INDEX(0.25, 1.0)        → "U/I"
 */
-
 ASTRO_HAB_INDEX = LAMBDA(orbital_dist, [nucleal_radius], [prec],
     LET(
-        rounding_precision, IF(ISOMITTED(prec), 3, prec),             /* Default to 3 decimals */
-        nucleal_radius, IF(ISOMITTED(nucleal_radius), 1, nucleal_radius), /* Default to 1 AU if omitted */
-
-        is_inner_orbit, IF(orbital_dist < nucleal_radius, TRUE, FALSE),  /* Determine position */
-
-        habitability_index,                                           /* Piecewise function */
-            IF(
-                is_inner_orbit,
-                (2 * orbital_dist / nucleal_radius) - 1,              /* Inside HZ model */
-                (orbital_dist / (-3.85 * nucleal_radius)) + (4.85 / 3.85)  /* Outside HZ model */
-            ),
-
-        final_result,                                                 /* Handle invalid/valid cases */
-            IF(habitability_index <= 0, "U/I", ROUND(habitability_index, rounding_precision)),
-
+        rounding_precision, IF(ISOMITTED(prec), 3, prec),
+        /* Default to 3 decimals */
+        nucleal_radius, IF(ISOMITTED(nucleal_radius), 1, nucleal_radius),
+        /* Default to 1 AU if omitted */
+        is_inner_orbit, IF(orbital_dist < nucleal_radius, TRUE, FALSE),
+        /* Determine position */
+        habitability_index, /* Piecewise function */
+        IF(
+            is_inner_orbit,
+            (2 * orbital_dist / nucleal_radius) - 1,
+            /* Inside HZ model */
+            (orbital_dist / (-3.85 * nucleal_radius)) + (4.85 / 3.85)/* Outside HZ model */
+            
+        ),
+        final_result, /* Handle invalid/valid cases */
+        IF(habitability_index <= 0, "U/I", ROUND(habitability_index, rounding_precision)),
         final_result
     )
 );
@@ -81,33 +81,34 @@ ASTRO_HAB_INDEX = LAMBDA(orbital_dist, [nucleal_radius], [prec],
      - "Total" is included as the first row of the output for easy summation/audit.
      - Intended for use in modeling star system populations, galaxy seeding, or teaching the distribution of stellar types.
 */
-
-
 ASTRO_SPECTRAL_DISTRIBUTION = LAMBDA([anchor_class], [anchor_count], [decimal_places],
     LET(
         // === Default parameters ===
         anchor_class, IF(ISOMITTED(anchor_class), "$", UPPER(anchor_class)),
         anchor_count, IF(ISOMITTED(anchor_count), 1, anchor_count),
         decimal_places, IF(ISOMITTED(decimal_places), 3, decimal_places),
-
+        
         // === Spectral class array and base frequencies (empirical) ===
         arr_classes, {"O"; "B"; "A"; "F"; "G"; "K"; "M"},
-        arr_base_pct, {0.00003; 0.13; 0.6; 3.0; 7.6; 12.1; 76.27},
+        arr_base_pct, {0.00003; 0.13; 0.6; 3; 7.6; 12.1; 76.27},
         arr_base_frac, BYROW(arr_base_pct, LAMBDA(x, x / 100)),
-
+        
         // === Lookup scaling factor for a specific anchor type
         anchor_freq, XLOOKUP(anchor_class, arr_classes, arr_base_frac, 1),
         scaling_factor, anchor_count / anchor_freq,
-
+        
         // === Scaled distribution — normalize or apply user-defined scale
-        scaled, IF(anchor_class = "$", arr_base_frac, BYROW(arr_base_frac, LAMBDA(x, x * scaling_factor))),
-
+        scaled, IF(
+            anchor_class = "$",
+            arr_base_frac,
+            BYROW(arr_base_frac, LAMBDA(x, x * scaling_factor))
+        ),
+        
         // === Final output
         output, HSTACK(arr_classes, ROUND(scaled, decimal_places)),
         output
     )
 );
-
 
 /* ASTRO_CALC_TEMP:
    Purpose: Returns the interpolated effective temperature (in Kelvin) for a given stellar subclass
@@ -132,65 +133,37 @@ ASTRO_SPECTRAL_DISTRIBUTION = LAMBDA([anchor_class], [anchor_count], [decimal_pl
    ASTRO_CALC_TEMP("F8.45")  → 6121.5
    ASTRO_CALC_TEMP("M8.6")   → 2456
 */
-
-
 ASTRO_CALC_TEMP = LAMBDA(subclass,
-  LET(
-    // --- Hardcoded spectral subclass arrays ---
+    LET(
+        // --- Hardcoded spectral subclass arrays ---
+        arrTypes, {"O0"; "O1"; "O2"; "O3"; "O4"; "O5"; "O6"; "O7"; "O8"; "O9"; "B0"; "B1"; "B2"; "B3"; "B4"; "B5"; "B6"; "B7"; "B8"; "B9"; "A0"; "A1"; "A2"; "A3"; "A4"; "A5"; "A6"; "A7"; "A8"; "A9"; "F0"; "F1"; "F2"; "F3"; "F4"; "F5"; "F6"; "F7"; "F8"; "F9"; "G0"; "G1"; "G2"; "G3"; "G4"; "G5"; "G6"; "G7"; "G8"; "G9"; "K0"; "K1"; "K2"; "K3"; "K4"; "K5"; "K6"; "K7"; "K8"; "K9"; "M0"; "M1"; "M2"; "M3"; "M4"; "M5"; "M6"; "M7"; "M8"; "M9"}
+,
+        
+        // High effective temperatures (K) for each subclass
+        arrTHigh, {55000; 52000; 49000; 46000; 43000; 40000; 37000; 34000; 31000; 28000; 25000; 23500; 22000; 20500; 19000; 17500; 16000; 14500; 13000; 11500; 10000; 9750; 9500; 9250; 9000; 8750; 8500; 8250; 8000; 7750; 7500; 7350; 7200; 7050; 6900; 6750; 6600; 6450; 6300; 6150; 6000; 5900; 5800; 5700; 5600; 5500; 5400; 5300; 5200; 5100; 5000; 4850; 4700; 4550; 4400; 4250; 4100; 3950; 3800; 3650; 3500; 3390; 3280; 3170; 3060; 2950; 2840; 2730; 2620; 2510}
+,
+        
+        // Temperature span to the next subclass (K)
+        arrSpan, {3000; 3000; 3000; 3000; 3000; 3000; 3000; 3000; 3000; 3000; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 250; 250; 250; 250; 250; 250; 250; 250; 250; 250; 150; 150; 150; 150; 150; 150; 150; 150; 150; 150; 100; 100; 100; 100; 100; 100; 100; 100; 100; 100; 150; 150; 150; 150; 150; 150; 150; 150; 150; 150; 110; 110; 110; 110; 110; 110; 110; 110; 110; 110},
 
-    arrTypes, {
-      "O3"; "O4"; "O5"; "O6"; "O7"; "O8"; "O9";
-      "B0"; "B1"; "B2"; "B3"; "B4"; "B5"; "B6"; "B7"; "B8"; "B9";
-      "A0"; "A1"; "A2"; "A3"; "A4"; "A5"; "A6"; "A7"; "A8"; "A9";
-      "F0"; "F1"; "F2"; "F3"; "F4"; "F5"; "F6"; "F7"; "F8"; "F9";
-      "G0"; "G1"; "G2"; "G3"; "G4"; "G5"; "G6"; "G7"; "G8"; "G9";
-      "K0"; "K1"; "K2"; "K3"; "K4"; "K5"; "K6"; "K7"; "K8"; "K9";
-      "M0"; "M1"; "M2"; "M3"; "M4"; "M5"; "M6"; "M7"; "M8"; "M9"
-    },
-
-    // High effective temperatures (K) for each subclass
-    arrTHigh, {
-      44900; 42900; 41400; 39500; 37100; 35100; 33300;
-      31400; 26000; 20600; 17000; 16400; 15700; 14500; 14000; 12300; 10700;
-      9700; 9300; 8800; 8600; 8250; 8100; 7910; 7760; 7590; 7400;
-      7220; 7020; 6820; 6750; 6670; 6550; 6350; 6280; 6180;
-      6050; 5930; 5860; 5770; 5720; 5680; 5660; 5600; 5550; 5480;
-      5380; 5270; 5170; 5100; 4830; 4600; 4440; 4300; 4100; 3990;
-      3930; 3850; 3660; 3560; 3430; 3210; 3060; 2810; 2680; 2570; 2380
-    },
-
-    // Temperature span to the next subclass (K)
-    arrSpan, {
-      2000; 1500; 1900; 2400; 2000; 1800; 1900;
-      5400; 5400; 3600; 600; 700; 1200; 500; 1700; 1600; 1000;
-      400; 500; 200; 350; 150; 190; 150; 170; 190; 180;
-      200; 200; 70; 80; 120; 200; 70; 100; 130;
-      120; 70; 90; 50; 40; 20; 60; 50; 70; 100;
-      110; 100; 70; 270; 230; 160; 140; 200; 110; 60;
-      80; 190; 100; 130; 220; 150; 250; 130; 110; 190; 280
-    },
-
-    // Bundle into a single matrix for clean lookup
-    mtxStars, HSTACK(arrTypes, arrTHigh, arrSpan),
-
-    // --- Input normalization and parsing ---
-
-    no_space, SUBSTITUTE(subclass, " ", ""),                  // Trim whitespace
-    dot_pos, FIND(".", no_space & ".0"),                      // Ensure fractional part is detected even for whole subclasses
-    base, LEFT(no_space, dot_pos - 1),                        // Extract root subclass, e.g., "G7" from "G7.3"
-    f, VALUE("0." & MID(no_space, dot_pos + 1, LEN(no_space))), // Convert decimal string to numeric (e.g., 0.3)
-
-    // --- Lookup high temp and span from matrix ---
-
-    T_high, XLOOKUP(base, INDEX(mtxStars,,1), INDEX(mtxStars,,2)), // e.g. 5550 for "G7"
-    span,   XLOOKUP(base, INDEX(mtxStars,,1), INDEX(mtxStars,,3)), // e.g. 70 for "G7"
-
-    // --- Interpolation: T = T_high - f * span ---
-
-    result, T_high - (f * span),
-
-    result
-  )
+        
+        // Bundle into a single matrix for clean lookup
+        mtxStars, HSTACK(arrTypes, arrTHigh, arrSpan),
+        
+        // --- Input normalization and parsing ---
+        no_space, SUBSTITUTE(subclass, " ", ""), // Trim whitespace
+        dot_pos, FIND(".", no_space & ".0"), // Ensure fractional part is detected even for whole subclasses
+        base, LEFT(no_space, dot_pos - 1), // Extract root subclass, e.g., "G7" from "G7.3"
+        f, VALUE("0." & MID(no_space, dot_pos + 1, LEN(no_space))), // Convert decimal string to numeric (e.g., 0.3)
+        
+        // --- Lookup high temp and span from matrix ---
+        T_high, XLOOKUP(base, INDEX(mtxStars, , 1), INDEX(mtxStars, , 2)), // e.g. 5550 for "G7"
+        span, XLOOKUP(base, INDEX(mtxStars, , 1), INDEX(mtxStars, , 3)), // e.g. 70 for "G7"
+        
+        // --- Interpolation: T = T_high - f * span ---
+        result, T_high - (f * span),
+        result
+    )
 );
 
 /* ASTRO_TYPE_FROM_TEMP:
@@ -219,68 +192,39 @@ ASTRO_CALC_TEMP = LAMBDA(subclass,
    - Uses XMATCH + MAP for logical range detection.
    - Assumes temperature decreases monotonically across subclass sequence.
 */
-
-
 ASTRO_TYPE_FROM_TEMP = LAMBDA(temp, [decimals],
-  LET(
-    // --- Hardcoded spectral subclass data ---
-    arrTypes, {
-      "O3"; "O4"; "O5"; "O6"; "O7"; "O8"; "O9";
-      "B0"; "B1"; "B2"; "B3"; "B4"; "B5"; "B6"; "B7"; "B8"; "B9";
-      "A0"; "A1"; "A2"; "A3"; "A4"; "A5"; "A6"; "A7"; "A8"; "A9";
-      "F0"; "F1"; "F2"; "F3"; "F4"; "F5"; "F6"; "F7"; "F8"; "F9";
-      "G0"; "G1"; "G2"; "G3"; "G4"; "G5"; "G6"; "G7"; "G8"; "G9";
-      "K0"; "K1"; "K2"; "K3"; "K4"; "K5"; "K6"; "K7"; "K8"; "K9";
-      "M0"; "M1"; "M2"; "M3"; "M4"; "M5"; "M6"; "M7"; "M8"; "M9"
-    },
-
-    arrTHigh, {
-      44900; 42900; 41400; 39500; 37100; 35100; 33300;
-      31400; 26000; 20600; 17000; 16400; 15700; 14500; 14000; 12300; 10700;
-      9700; 9300; 8800; 8600; 8250; 8100; 7910; 7760; 7590; 7400;
-      7220; 7020; 6820; 6750; 6670; 6550; 6350; 6280; 6180;
-      6050; 5930; 5860; 5770; 5720; 5680; 5660; 5600; 5550; 5480;
-      5380; 5270; 5170; 5100; 4830; 4600; 4440; 4300; 4100; 3990;
-      3930; 3850; 3660; 3560; 3430; 3210; 3060; 2810; 2680; 2570; 2380
-    },
-
-    arrSpan, {
-      2000; 1500; 1900; 2400; 2000; 1800; 1900;
-      5400; 5400; 3600; 600; 700; 1200; 500; 1700; 1600; 1000;
-      400; 500; 200; 350; 150; 190; 150; 170; 190; 180;
-      200; 200; 70; 80; 120; 200; 70; 100; 130;
-      120; 70; 90; 50; 40; 20; 60; 50; 70; 100;
-      110; 100; 70; 270; 230; 160; 140; 200; 110; 60;
-      80; 190; 100; 130; 220; 150; 250; 130; 110; 190; 280
-    },
-
-    // --- Determine match index ---
-    temp_in_range,
-      MAP(SEQUENCE(ROWS(arrTHigh)),
-        LAMBDA(i,
-          AND(
-            INDEX(arrTHigh, i) >= temp,
-            temp > INDEX(arrTHigh, i) - INDEX(arrSpan, i)
-          )
-        )
-      ),
-    idx, XMATCH(TRUE, temp_in_range),
-
-    // --- Lookup type and compute fraction ---
-    full_type, INDEX(arrTypes, idx),
-    T_high, INDEX(arrTHigh, idx),
-    span, INDEX(arrSpan, idx),
-    f, (T_high - temp) / span,
-
-    // --- Format fractional part ---
-    dec, IF(ISOMITTED(decimals), 3, decimals),
-    format_string, "." & REPT("0", dec),
-    subclass, full_type & TEXT(f, format_string),
-
-    subclass
-  )
+    LET(
+        // --- Hardcoded spectral subclass data ---
+        arrTypes, {"O0"; "O1"; "O2"; "O3"; "O4"; "O5"; "O6"; "O7"; "O8"; "O9"; "B0"; "B1"; "B2"; "B3"; "B4"; "B5"; "B6"; "B7"; "B8"; "B9"; "A0"; "A1"; "A2"; "A3"; "A4"; "A5"; "A6"; "A7"; "A8"; "A9"; "F0"; "F1"; "F2"; "F3"; "F4"; "F5"; "F6"; "F7"; "F8"; "F9"; "G0"; "G1"; "G2"; "G3"; "G4"; "G5"; "G6"; "G7"; "G8"; "G9"; "K0"; "K1"; "K2"; "K3"; "K4"; "K5"; "K6"; "K7"; "K8"; "K9"; "M0"; "M1"; "M2"; "M3"; "M4"; "M5"; "M6"; "M7"; "M8"; "M9"},
+        
+        // High effective temperatures (K) for each subclass
+        arrTHigh, {55000; 52000; 49000; 46000; 43000; 40000; 37000; 34000; 31000; 28000; 25000; 23500; 22000; 20500; 19000; 17500; 16000; 14500; 13000; 11500; 10000; 9750; 9500; 9250; 9000; 8750; 8500; 8250; 8000; 7750; 7500; 7350; 7200; 7050; 6900; 6750; 6600; 6450; 6300; 6150; 6000; 5900; 5800; 5700; 5600; 5500; 5400; 5300; 5200; 5100; 5000; 4850; 4700; 4550; 4400; 4250; 4100; 3950; 3800; 3650; 3500; 3390; 3280; 3170; 3060; 2950; 2840; 2730; 2620; 2510},
+        
+        // Temperature span to the next subclass (K)
+        arrSpan, {3000; 3000; 3000; 3000; 3000; 3000; 3000; 3000; 3000; 3000; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 250; 250; 250; 250; 250; 250; 250; 250; 250; 250; 150; 150; 150; 150; 150; 150; 150; 150; 150; 150; 100; 100; 100; 100; 100; 100; 100; 100; 100; 100; 150; 150; 150; 150; 150; 150; 150; 150; 150; 150; 110; 110; 110; 110; 110; 110; 110; 110; 110; 110},
+        
+        // --- Determine match index ---
+        temp_in_range, MAP(
+            SEQUENCE(ROWS(arrTHigh)),
+            LAMBDA(i,
+                AND(INDEX(arrTHigh, i) >= temp, temp > INDEX(arrTHigh, i) - INDEX(arrSpan, i))
+            )
+        ),
+        idx, XMATCH(TRUE, temp_in_range),
+        
+        // --- Lookup type and compute fraction ---
+        full_type, INDEX(arrTypes, idx),
+        T_high, INDEX(arrTHigh, idx),
+        span, INDEX(arrSpan, idx),
+        f, (T_high - temp) / span,
+        
+        // --- Format fractional part ---
+        dec, IF(ISOMITTED(decimals), 3, decimals),
+        format_string, "." & REPT("0", dec),
+        subclass, full_type & TEXT(f, format_string),
+        subclass
+    )
 );
-
 
 /* ASTRO_DISPLAY_SPECTRAL:
    Purpose: Displays spectral subclass temperature and span data across stellar classifications.
@@ -305,72 +249,53 @@ ASTRO_TYPE_FROM_TEMP = LAMBDA(temp, [decimals],
    ASTRO_DISPLAY_SPECTRAL("G")     → Returns temperature and span for G0–G9
    ASTRO_DISPLAY_SPECTRAL("F")     → F0–F9 classification metrics
 */
-
 ASTRO_DISPLAY_SPECTRAL = LAMBDA([type],
-  LET(
-    // --- Define spectral types and build helpers ---
-    Types, {"O";"B";"A";"F";"G";"K";"M"},
-    Headers, TRANSPOSE(VSTACK(" ", Types)),
-    FindCol, MAKEARRAY(COUNTA(Types), 2, LAMBDA(r, c, IF(c = 1, INDEX(Types, r), r))),
+    LET(
+        // --- Define spectral types and build helpers ---
+        Types, {"O"; "B"; "A"; "F"; "G"; "K"; "M"},
+        Headers, TRANSPOSE(VSTACK(" ", Types)),
+        FindCol, MAKEARRAY(COUNTA(Types), 2, LAMBDA(r, c, IF(c = 1, INDEX(Types, r), r))),
+        
+        // --- Raw star subclass data ---
+        arrTypes, {"O0"; "O1"; "O2"; "O3"; "O4"; "O5"; "O6"; "O7"; "O8"; "O9"; "B0"; "B1"; "B2"; "B3"; "B4"; "B5"; "B6"; "B7"; "B8"; "B9"; "A0"; "A1"; "A2"; "A3"; "A4"; "A5"; "A6"; "A7"; "A8"; "A9"; "F0"; "F1"; "F2"; "F3"; "F4"; "F5"; "F6"; "F7"; "F8"; "F9"; "G0"; "G1"; "G2"; "G3"; "G4"; "G5"; "G6"; "G7"; "G8"; "G9"; "K0"; "K1"; "K2"; "K3"; "K4"; "K5"; "K6"; "K7"; "K8"; "K9"; "M0"; "M1"; "M2"; "M3"; "M4"; "M5"; "M6"; "M7"; "M8"; "M9"}
+,
+        
+        // High effective temperatures (K) for each subclass
+        arrTHigh, {55000; 52000; 49000; 46000; 43000; 40000; 37000; 34000; 31000; 28000; 25000; 23500; 22000; 20500; 19000; 17500; 16000; 14500; 13000; 11500; 10000; 9750; 9500; 9250; 9000; 8750; 8500; 8250; 8000; 7750; 7500; 7350; 7200; 7050; 6900; 6750; 6600; 6450; 6300; 6150; 6000; 5900; 5800; 5700; 5600; 5500; 5400; 5300; 5200; 5100; 5000; 4850; 4700; 4550; 4400; 4250; 4100; 3950; 3800; 3650; 3500; 3390; 3280; 3170; 3060; 2950; 2840; 2730; 2620; 2510}
+,
+        
+        // Temperature span to the next subclass (K)
+        arrSpan, {3000; 3000; 3000; 3000; 3000; 3000; 3000; 3000; 3000; 3000; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 1500; 250; 250; 250; 250; 250; 250; 250; 250; 250; 250; 150; 150; 150; 150; 150; 150; 150; 150; 150; 150; 100; 100; 100; 100; 100; 100; 100; 100; 100; 100; 150; 150; 150; 150; 150; 150; 150; 150; 150; 150; 110; 110; 110; 110; 110; 110; 110; 110; 110; 110},
 
-    // --- Raw star subclass data ---
-    arrTypes, {
-      "O"; "O"; "O"; "O3"; "O4"; "O5"; "O6"; "O7"; "O8"; "O9";
-      "B0"; "B1"; "B2"; "B3"; "B4"; "B5"; "B6"; "B7"; "B8"; "B9";
-      "A0"; "A1"; "A2"; "A3"; "A4"; "A5"; "A6"; "A7"; "A8"; "A9";
-      "F0"; "F1"; "F2"; "F3"; "F4"; "F5"; "F6"; "F7"; "F8"; "F9";
-      "G0"; "G1"; "G2"; "G3"; "G4"; "G5"; "G6"; "G7"; "G8"; "G9";
-      "K0"; "K1"; "K2"; "K3"; "K4"; "K5"; "K6"; "K7"; "K8"; "K9";
-      "M0"; "M1"; "M2"; "M3"; "M4"; "M5"; "M6"; "M7"; "M8"; "M9"
-    },
-
-    arrTHigh, {
-      ""; ""; ""; 44900; 42900; 41400; 39500; 37100; 35100; 33300;
-      31400; 26000; 20600; 17000; 16400; 15700; 14500; 14000; 12300; 10700;
-      9700; 9300; 8800; 8600; 8250; 8100; 7910; 7760; 7590; 7400;
-      7220; 7020; 6820; 6750; 6670; 6550; 6350; 6280; 6180;
-      6050; 5930; 5860; 5770; 5720; 5680; 5660; 5600; 5550; 5480;
-      5380; 5270; 5170; 5100; 4830; 4600; 4440; 4300; 4100; 3990;
-      3930; 3850; 3660; 3560; 3430; 3210; 3060; 2810; 2680; 2570; 2380
-    },
-
-    arrSpan, {
-      ""; ""; ""; 2000; 1500; 1900; 2400; 2000; 1800; 1900;
-      5400; 5400; 3600; 600; 700; 1200; 500; 1700; 1600; 1000;
-      400; 500; 200; 350; 150; 190; 150; 170; 190; 180;
-      200; 200; 70; 80; 120; 200; 70; 100; 130;
-      120; 70; 90; 50; 40; 20; 60; 50; 70; 100;
-      110; 100; 70; 270; 230; 160; 140; 200; 110; 60;
-      80; 190; 100; 130; 220; 150; 250; 130; 110; 190; 280
-    },
-
-    // --- If no type is specified, display full table ---
-    formattedData, BYROW(HSTACK(arrTypes, arrTHigh, arrSpan),
-      LAMBDA(row, TEXTJOIN("; ", TRUE, TEXT(INDEX(row, 2), "0"), TEXT(INDEX(row, 3), "0")))
-    ),
-
-    Numbers, SEQUENCE(10,1,0,1),
-    O_Stars, FILTER(formattedData, LEFT(arrTypes,1)="O"),
-    B_Stars, FILTER(formattedData, LEFT(arrTypes,1)="B"),
-    A_Stars, FILTER(formattedData, LEFT(arrTypes,1)="A"),
-    F_Stars, FILTER(formattedData, LEFT(arrTypes,1)="F"),
-    G_Stars, FILTER(formattedData, LEFT(arrTypes,1)="G"),
-    K_Stars, FILTER(formattedData, LEFT(arrTypes,1)="K"),
-    M_Stars, FILTER(formattedData, LEFT(arrTypes,1)="M"),
-
-    fullTable, VSTACK(Headers, HSTACK(Numbers,O_Stars, B_Stars, A_Stars, F_Stars, G_Stars, K_Stars, M_Stars)),
-
-    // --- If type is specified, just return two-column breakdown ---
-    temps, FILTER(arrTHigh, LEFT(arrTypes, 1) = type),
-    spans, FILTER(arrSpan, LEFT(arrTypes, 1) = type),
-    typeHead, HSTACK(type, "span"),
-    slimTable, VSTACK(typeHead, HSTACK(temps, spans)),
-
-    // --- Final output: full table or filtered columns
-    result, IF(ISBLANK(type), fullTable, slimTable),
-
-    result
-  )
+        
+        // --- If no type is specified, display full table ---
+        formattedData, BYROW(
+            HSTACK(arrTypes, arrTHigh, arrSpan),
+            LAMBDA(row, TEXTJOIN("; ", TRUE, TEXT(INDEX(row, 2), "0"), TEXT(INDEX(row, 3), "0")))
+        ),
+        Numbers, SEQUENCE(10, 1, 0, 1),
+        O_Stars, FILTER(formattedData, LEFT(arrTypes, 1) = "O"),
+        B_Stars, FILTER(formattedData, LEFT(arrTypes, 1) = "B"),
+        A_Stars, FILTER(formattedData, LEFT(arrTypes, 1) = "A"),
+        F_Stars, FILTER(formattedData, LEFT(arrTypes, 1) = "F"),
+        G_Stars, FILTER(formattedData, LEFT(arrTypes, 1) = "G"),
+        K_Stars, FILTER(formattedData, LEFT(arrTypes, 1) = "K"),
+        M_Stars, FILTER(formattedData, LEFT(arrTypes, 1) = "M"),
+        fullTable, VSTACK(
+            Headers,
+            HSTACK(Numbers, O_Stars, B_Stars, A_Stars, F_Stars, G_Stars, K_Stars, M_Stars)
+        ),
+        
+        // --- If type is specified, just return two-column breakdown ---
+        temps, FILTER(arrTHigh, LEFT(arrTypes, 1) = type),
+        spans, FILTER(arrSpan, LEFT(arrTypes, 1) = type),
+        typeHead, HSTACK(type, "span"),
+        slimTable, VSTACK(typeHead, HSTACK(temps, spans)),
+        
+        // --- Final output: full table or filtered columns
+        result, IF(ISBLANK(type), fullTable, slimTable),
+        result
+    )
 );
 
 /* ASTRO_STAR_ATTRIBUTES
@@ -422,54 +347,51 @@ ASTRO_DISPLAY_SPECTRAL = LAMBDA([type],
    - Designed for educational, speculative, and modeling purposes.
 
 */
-
 ASTRO_STAR_ATTRIBUTES = LAMBDA(mode, input, [precision],
-  LET(
-    // Set default rounding precision
-    prec, IF(ISOMITTED(precision), 6, precision),
-
-    // Normalize input mode to upper-case for consistency
-    mode, UPPER(mode),
-
-    // Normalize input to solar-relative temperature (Tnorm)
-    Tnorm, SWITCH(
-      mode,
-      "T", input,
-      "K", input / 5770,
-      "M", SQRT(input),
-      "R", input ^ (1 / 1.8),
-      "L", input ^ (1 / 7.6),
-      "V", input ^ (-1 / 5),
-      NA()
-    ),
-
-    // Now derive all other attributes from Tnorm
-    K, Tnorm * 5770,
-    M, Tnorm ^ 2,
-    R, Tnorm ^ 1.8,
-    L, Tnorm ^ 7.6,
-    V, Tnorm ^ -5,
-
-    // Round everything and format as strings
-    labels, TRANSPOSE({"K", "T", "M", "R", "L", "V"}),
-        output_values, VSTACK(
-        ROUND(K, prec),
-        ROUND(Tnorm, prec),
-        ROUND(M, prec),
-        ROUND(R, prec),
-        ROUND(L, prec),
-        ROUND(V, prec)
+    LET(
+        // Set default rounding precision
+        prec, IF(ISOMITTED(precision), 6, precision),
+        
+        // Normalize input mode to upper-case for consistency
+        mode, UPPER(mode),
+        
+        // Normalize input to solar-relative temperature (Tnorm)
+        Tnorm, SWITCH(
+            mode,
+            "T", input,
+            "K", input / 5770,
+            "M", SQRT(input),
+            "R", input ^ (1 / 1.8),
+            "L", input ^ (1 / 7.6),
+            "V", input ^ (-1 / 5),
+            NA()
         ),
-
-    // --- Labels with arrow on selected mode ---
+        
+        // Now derive all other attributes from Tnorm
+        K, Tnorm * 5770,
+        M, Tnorm ^ 2,
+        R, Tnorm ^ 1.8,
+        L, Tnorm ^ 7.6,
+        V, Tnorm ^ -5,
+        
+        // Round everything and format as strings
+        labels, TRANSPOSE({"K", "T", "M", "R", "L", "V"}),
+        output_values, VSTACK(
+            ROUND(K, prec),
+            ROUND(Tnorm, prec),
+            ROUND(M, prec),
+            ROUND(R, prec),
+            ROUND(L, prec),
+            ROUND(V, prec)
+        ),
+        
+        // --- Labels with arrow on selected mode ---
         flagged_labels, BYROW(labels, LAMBDA(row, IF(row = mode, row & " ➔", row))),
-
-
-    // Return labeled table
-    CHOOSE({1, 2}, flagged_labels, output_values)
-  )
+        
+        // Return labeled table
+        CHOOSE({1, 2}, flagged_labels, output_values)
+    )
 );
-
 
 /* ASTRO_HABITABLE_ZONES:
    Purpose: Returns habitable zone data based on stellar luminosity.
@@ -501,74 +423,70 @@ ASTRO_STAR_ATTRIBUTES = LAMBDA(mode, input, [precision],
    - Nucleal radius is sqrt(L) and used as anchor between Z2–Z3.
    - Input is ignored for mode "TABLE".
 */
-
 ASTRO_HABITABLE_ZONES = LAMBDA(mode, [lum], [precision],
-  LET(
-    mode, UPPER(mode),
-    prec, IF(ISOMITTED(precision), 3, precision),
-
-    // Zone coefficients
-    zone_labels, {"Z0"; "Z1"; "Z2"; "Z3"; "Z4"; "Z5"},
-    inner_factors, {0; 0.5; 0.75; 0.95; 1.385; 1.77},
-    outer_factors, {0.5; 0.75; 0.95; 1.385; 1.77; 4.85},
-
-    // Precompute average and span
-    avg_factors, (inner_factors + outer_factors) / 2,
-    span_factors, outer_factors - inner_factors,
-
-    // Nucleal (for scaling)
-    nucleal, SQRT(IF(ISOMITTED(lum), 1, lum)),
-
-    // Compute scaled distances
-    inner_scaled, ROUND(nucleal * inner_factors, prec),
-    outer_scaled, ROUND(nucleal * outer_factors, prec),
-    avg_scaled, ROUND(nucleal * avg_factors, prec),
-    span_scaled, ROUND(nucleal * span_factors, prec),
-
-    // Formatted output
-    vertical_labels, {"0: ", "1: ", "2: ", "N ➔", "3: ", "4: ", "5: "},
-    vertical_values, VSTACK(
-    ROUND(INDEX(inner_factors, 2) * nucleal, prec),
-    ROUND(INDEX(inner_factors, 3) * nucleal, prec),
-    ROUND(INDEX(inner_factors, 4) * nucleal, prec),
-    ROUND(nucleal, prec),
-    ROUND(INDEX(outer_factors, 4) * nucleal, prec),
-    ROUND(INDEX(outer_factors, 5) * nucleal, prec),
-    ROUND(INDEX(outer_factors, 6) * nucleal, prec)
-    ),
-
-    // Return logic
-    result,
-      SWITCH(
-        mode,
-        "STANDARD", CHOOSE(
-          {1, 2, 3, 4, 5},
-          VSTACK("Zone", zone_labels),
-          VSTACK("Inner", inner_factors),
-          VSTACK("Outer", outer_factors),
-          VSTACK("Average", avg_factors),
-          VSTACK("Span", span_factors)
+    LET(
+        mode, UPPER(mode),
+        prec, IF(ISOMITTED(precision), 3, precision),
+        
+        // Zone coefficients
+        zone_labels, {"Z0"; "Z1"; "Z2"; "Z3"; "Z4"; "Z5"},
+        inner_factors, {0; 0.5; 0.75; 0.95; 1.385; 1.77},
+        outer_factors, {0.5; 0.75; 0.95; 1.385; 1.77; 4.85},
+        
+        // Precompute average and span
+        avg_factors, (inner_factors + outer_factors) / 2,
+        span_factors, outer_factors - inner_factors,
+        
+        // Nucleal (for scaling)
+        nucleal, SQRT(IF(ISOMITTED(lum), 1, lum)),
+        
+        // Compute scaled distances
+        inner_scaled, ROUND(nucleal * inner_factors, prec),
+        outer_scaled, ROUND(nucleal * outer_factors, prec),
+        avg_scaled, ROUND(nucleal * avg_factors, prec),
+        span_scaled, ROUND(nucleal * span_factors, prec),
+        
+        // Formatted output
+        vertical_labels, {"0: ", "1: ", "2: ", "N ➔", "3: ", "4: ", "5: "},
+        vertical_values, VSTACK(
+            ROUND(INDEX(inner_factors, 2) * nucleal, prec),
+            ROUND(INDEX(inner_factors, 3) * nucleal, prec),
+            ROUND(INDEX(inner_factors, 4) * nucleal, prec),
+            ROUND(nucleal, prec),
+            ROUND(INDEX(outer_factors, 4) * nucleal, prec),
+            ROUND(INDEX(outer_factors, 5) * nucleal, prec),
+            ROUND(INDEX(outer_factors, 6) * nucleal, prec)
         ),
-        "VERTICAL", 
-          LET(
-            labels, {"0:", "1:", "2:", "N ➔", "3:", "4:", "5:"},
-            scaled_values, ROUND(nucleal * {0.5, 0.75, 0.95, 1, 1.385, 1.77, 4.85}, prec),
-            TRANSPOSE(VSTACK(labels, scaled_values))
+        
+        // Return logic
+        result, SWITCH(
+            mode,
+            "STANDARD", CHOOSE(
+                {1, 2, 3, 4, 5},
+                VSTACK("Zone", zone_labels),
+                VSTACK("Inner", inner_factors),
+                VSTACK("Outer", outer_factors),
+                VSTACK("Average", avg_factors),
+                VSTACK("Span", span_factors)
+            ),
+            "VERTICAL", LET(
+                labels, {"0:", "1:", "2:", "N ➔", "3:", "4:", "5:"},
+                scaled_values, ROUND(nucleal * {0.5, 0.75, 0.95, 1, 1.385, 1.77, 4.85}, prec),
+                TRANSPOSE(VSTACK(labels, scaled_values))
+            ),
+            "HORIZONTAL", HSTACK(
+                ROUND(INDEX(inner_factors, 2) * nucleal, prec),
+                ROUND(INDEX(inner_factors, 3) * nucleal, prec),
+                ROUND(INDEX(inner_factors, 4) * nucleal, prec),
+                ROUND(nucleal, prec),
+                ROUND(INDEX(outer_factors, 4) * nucleal, prec),
+                ROUND(INDEX(outer_factors, 5) * nucleal, prec),
+                ROUND(INDEX(outer_factors, 6) * nucleal, prec)
+            ),
+            "Invalid mode"
         ),
-        "HORIZONTAL", HSTACK(
-        ROUND(INDEX(inner_factors, 2) * nucleal, prec),
-        ROUND(INDEX(inner_factors, 3) * nucleal, prec),
-        ROUND(INDEX(inner_factors, 4) * nucleal, prec),
-        ROUND(nucleal, prec),
-        ROUND(INDEX(outer_factors, 4) * nucleal, prec),
-        ROUND(INDEX(outer_factors, 5) * nucleal, prec),
-        ROUND(INDEX(outer_factors, 6) * nucleal, prec)
-        ),
-        "Invalid mode"
-      ),
-
-    result
-  )
+        result
+    )
 );
 
 /* NASTRO_HABITABLE_ZONES:
@@ -589,61 +507,59 @@ ASTRO_HABITABLE_ZONES = LAMBDA(mode, [lum], [precision],
    ASTRO_HABITABLE_ZONES("VERTICAL", 3)
    ASTRO_HABITABLE_ZONES("HORIZONTAL", 3)
 */
-
 NASTRO_HABITABLE_ZONES = LAMBDA(mode, [lum], [prec],
-  LET(
-    // --- Defaults ---
-    dec, IF(ISOMITTED(prec), 3, prec),
-    L, IF(ISOMITTED(lum), 1, lum),
-    nuc, SQRT(L),
-
-    // --- Zone base data ---
-    zone_labels, {"Z0", "Z1", "Z2", "Z3", "Z4", "Z5"},
-    inner_factors, {0, 0.5, 0.75, 0.95, 1.385, 1.77},
-    outer_factors, {0.5, 0.75, 0.95, 1.385, 1.77, 4.85},
-    avg_factors,   {0.25, 0.625, 0.85, 1.1675, 1.5775, 3.31},
-    span_factors,  {0.5, 0.25, 0.2, 0.435, 0.385, 3.08},
-
-    // --- Scaled values ---
-    inner_scaled, ROUND(nuc * inner_factors, dec),
-    outer_scaled, ROUND(nuc * outer_factors, dec),
-    avg_scaled,   ROUND(nuc * avg_factors, dec),
-    span_scaled,  ROUND(nuc * span_factors, dec),
-
-    // --- Table: STANDARD and TABLE modes ---
-    row_1, VSTACK("Zone", zone_labels),
-    row_2, VSTACK("Inner", IF(mode="STANDARD", inner_factors, inner_scaled)),
-    row_3, VSTACK("Outer", IF(mode="STANDARD", outer_factors, outer_scaled)),
-    row_4, VSTACK("Average", IF(mode="STANDARD", avg_factors, avg_scaled)),
-    row_5, VSTACK("Span", IF(mode="STANDARD", span_factors, span_scaled)),
-
-    // --- Vertical mode output ---
-    vertical_labels, {"0:", "1:", "2:", "N ➔", "3:", "4:", "5:"},
-    vertical_values, ROUND({0.5, 0.75, 0.95, 1, 1.385, 1.77, 4.85} * nuc, dec),
-
-    // --- Horizontal mode output ---
-    horizontal_values, HSTACK(
-      ROUND(0.5 * nuc, dec),
-      ROUND(0.75 * nuc, dec),
-      ROUND(0.95 * nuc, dec),
-      ROUND(1 * nuc, dec),
-      ROUND(1.385 * nuc, dec),
-      ROUND(1.77 * nuc, dec),
-      ROUND(4.85 * nuc, dec)
-    ),
-
-    // --- Final output based on mode ---
-    SWITCH(
-      UPPER(mode),
-      "STANDARD", HSTACK(row_1, row_2, row_3, row_4, row_5),
-      "TABLE",    HSTACK(row_1, row_2, row_3, row_4, row_5),
-      "VERTICAL", HSTACK(vertical_labels, vertical_values),
-      "HORIZONTAL", horizontal_values,
-      "Invalid mode"
+    LET(
+        // --- Defaults ---
+        dec, IF(ISOMITTED(prec), 3, prec),
+        L, IF(ISOMITTED(lum), 1, lum),
+        nuc, SQRT(L),
+        
+        // --- Zone base data ---
+        zone_labels, {"Z0", "Z1", "Z2", "Z3", "Z4", "Z5"},
+        inner_factors, {0, 0.5, 0.75, 0.95, 1.385, 1.77},
+        outer_factors, {0.5, 0.75, 0.95, 1.385, 1.77, 4.85},
+        avg_factors, {0.25, 0.625, 0.85, 1.1675, 1.5775, 3.31},
+        span_factors, {0.5, 0.25, 0.2, 0.435, 0.385, 3.08},
+        
+        // --- Scaled values ---
+        inner_scaled, ROUND(nuc * inner_factors, dec),
+        outer_scaled, ROUND(nuc * outer_factors, dec),
+        avg_scaled, ROUND(nuc * avg_factors, dec),
+        span_scaled, ROUND(nuc * span_factors, dec),
+        
+        // --- Table: STANDARD and TABLE modes ---
+        row_1, VSTACK("Zone", zone_labels),
+        row_2, VSTACK("Inner", IF(mode = "STANDARD", inner_factors, inner_scaled)),
+        row_3, VSTACK("Outer", IF(mode = "STANDARD", outer_factors, outer_scaled)),
+        row_4, VSTACK("Average", IF(mode = "STANDARD", avg_factors, avg_scaled)),
+        row_5, VSTACK("Span", IF(mode = "STANDARD", span_factors, span_scaled)),
+        
+        // --- Vertical mode output ---
+        vertical_labels, {"0:", "1:", "2:", "N ➔", "3:", "4:", "5:"},
+        vertical_values, ROUND({0.5, 0.75, 0.95, 1, 1.385, 1.77, 4.85} * nuc, dec),
+        
+        // --- Horizontal mode output ---
+        horizontal_values, HSTACK(
+            ROUND(0.5 * nuc, dec),
+            ROUND(0.75 * nuc, dec),
+            ROUND(0.95 * nuc, dec),
+            ROUND(1 * nuc, dec),
+            ROUND(1.385 * nuc, dec),
+            ROUND(1.77 * nuc, dec),
+            ROUND(4.85 * nuc, dec)
+        ),
+        
+        // --- Final output based on mode ---
+        SWITCH(
+            UPPER(mode),
+            "STANDARD", HSTACK(row_1, row_2, row_3, row_4, row_5),
+            "TABLE", HSTACK(row_1, row_2, row_3, row_4, row_5),
+            "VERTICAL", HSTACK(vertical_labels, vertical_values),
+            "HORIZONTAL", horizontal_values,
+            "Invalid mode"
+        )
     )
-  )
-)
-;
+);
 
 /* ASTRO_STAR_DENSITY_VOLUME
    Purpose: Given a spherical volume (or radius), calculate how many stars fit at 1 star per 250 cubic light-years.
@@ -664,23 +580,20 @@ NASTRO_HABITABLE_ZONES = LAMBDA(mode, [lum], [prec],
    ASTRO_STAR_DENSITY_VOLUME(1000)          → {4.000; 6.203}
    ASTRO_STAR_DENSITY_VOLUME(5, 2, 1)       → {2.62; 523.60}
 */
-
 ASTRO_STAR_DENSITY_VOLUME = LAMBDA(input, [prec], [mode],
-  LET(
-    mode, IF(ISOMITTED(mode) + (mode < 0) + (mode > 1), 0, mode),
-    prec, IF(ISOMITTED(prec) + (prec < 0), 3, prec),
-
-    volume, IF(mode = 0, input, (4/3) * PI() * input ^ 3),
-    radius, IF(mode = 1, input, ROUND(((3 * volume) / (4 * PI())) ^ (1/3), prec)),
-    stars, ROUND(volume / 250, prec),
-
-    output, SWITCH(mode,
-      0, TOCOL(TEXTSPLIT(TEXTJOIN("; ", , "Stars: "&stars, "Radius: "&radius), "; ")),
-      1, TOCOL(TEXTSPLIT(TEXTJOIN("; ", , "Stars: "&stars, "Volume: "&volume), "; "))
-    ),
-
-    output
-  )
+    LET(
+        mode, IF(ISOMITTED(mode) + (mode < 0) + (mode > 1), 0, mode),
+        prec, IF(ISOMITTED(prec) + (prec < 0), 3, prec),
+        volume, IF(mode = 0, input, (4 / 3) * PI() * input ^ 3),
+        radius, IF(mode = 1, input, ROUND(((3 * volume) / (4 * PI())) ^ (1 / 3), prec)),
+        stars, ROUND(volume / 250, prec),
+        output, SWITCH(
+            mode,
+            0, TOCOL(TEXTSPLIT(TEXTJOIN("; ", , "Stars: " & stars, "Radius: " & radius), "; ")),
+            1, TOCOL(TEXTSPLIT(TEXTJOIN("; ", , "Stars: " & stars, "Volume: " & volume), "; "))
+        ),
+        output
+    )
 );
 
 /* ASTRO_PLANET_METRICS_SAFETY
@@ -707,128 +620,127 @@ ASTRO_STAR_DENSITY_VOLUME = LAMBDA(input, [prec], [mode],
    - A labeled 5-row table with values for: Mass (M), Radius (R), Density (d),
      Gravity (g), Escape Velocity (v)
 */
-
 ASTRO_PLANET_METRICS_SAFETY = LAMBDA(mode, param_1, param_2, [prec],
-  LET(
-    // Default precision
-    prec, IF(ISOMITTED(prec), 5, prec),
-
-    // Normalize input mode to lowercase
-    mode, LOWER(mode),
-
-    // Compute based on selected mode
-    output, SWITCH(
-      mode,
-      
-      // Mass + Density
-      "md", LET(
-        M, param_1,
-        d, param_2,
-        R, (M / d) ^ (1/3),
-        g, (M * d^2) ^ (1/3),
-        v, (M * SQRT(d)) ^ (1/3),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Mass + Radius
-      "mr", LET(
-        M, param_1,
-        R, param_2,
-        d, M / R^3,
-        g, M / R^2,
-        v, SQRT(M / R),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Mass + Gravity
-      "mg", LET(
-        M, param_1,
-        g, param_2,
-        R, SQRT(M / g),
-        d, SQRT(g^3 / M),
-        v, (M * g) ^ 0.25,
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Radius + Density
-      "rd", LET(
-        R, param_1,
-        d, param_2,
-        M, d * R^3,
-        g, d * R,
-        v, R * SQRT(d),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Radius + Gravity
-      "rg", LET(
-        R, param_1,
-        g, param_2,
-        M, g * R^2,
-        d, g / R,
-        v, SQRT(g * R),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Density + Gravity
-      "dg", LET(
-        d, param_1,
-        g, param_2,
-        R, g / d,
-        M, g^3 / d^2,
-        v, g / SQRT(d),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Density + Escape Velocity
-      "dv", LET(
-        d, param_1,
-        v, param_2,
-        R, v / SQRT(d),
-        M, v^3 / SQRT(d),
-        g, v * SQRT(d),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Gravity + Escape Velocity
-      "gv", LET(
-        g, param_1,
-        v, param_2,
-        R, v^2 / g,
-        M, v^4 / g,
-        d, (g / v)^2,
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Mass + Escape Velocity
-      "mv", LET(
-        M, param_1,
-        v, param_2,
-        R, M / v^2,
-        g, v^4 / M,
-        d, v^6 / M^2,
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Radius + Escape Velocity
-      "rv", LET(
-        R, param_1,
-        v, param_2,
-        g, v^2 / R,
-        M, R * v^2,
-        d, (v / R)^2,
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Default fallback
-      NA()
-    ),
-
-    // Format with headers and rounding
-    headers, {"M", "R", "d", "g", "v"},
-    values, ROUND(output, prec),
-    CHOOSE({1, 2}, TRANSPOSE(headers), TRANSPOSE(values))
-  )
+    LET(
+        // Default precision
+        prec, IF(ISOMITTED(prec), 5, prec),
+        
+        // Normalize input mode to lowercase
+        mode, LOWER(mode),
+        
+        // Compute based on selected mode
+        output, SWITCH(
+            mode,
+            
+            // Mass + Density
+            "md", LET(
+                M, param_1,
+                d, param_2,
+                R, (M / d) ^ (1 / 3),
+                g, (M * d ^ 2) ^ (1 / 3),
+                v, (M * SQRT(d)) ^ (1 / 3),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Mass + Radius
+            "mr", LET(
+                M, param_1,
+                R, param_2,
+                d, M / R ^ 3,
+                g, M / R ^ 2,
+                v, SQRT(M / R),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Mass + Gravity
+            "mg", LET(
+                M, param_1,
+                g, param_2,
+                R, SQRT(M / g),
+                d, SQRT(g ^ 3 / M),
+                v, (M * g) ^ 0.25,
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Radius + Density
+            "rd", LET(
+                R, param_1,
+                d, param_2,
+                M, d * R ^ 3,
+                g, d * R,
+                v, R * SQRT(d),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Radius + Gravity
+            "rg", LET(
+                R, param_1,
+                g, param_2,
+                M, g * R ^ 2,
+                d, g / R,
+                v, SQRT(g * R),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Density + Gravity
+            "dg", LET(
+                d, param_1,
+                g, param_2,
+                R, g / d,
+                M, g ^ 3 / d ^ 2,
+                v, g / SQRT(d),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Density + Escape Velocity
+            "dv", LET(
+                d, param_1,
+                v, param_2,
+                R, v / SQRT(d),
+                M, v ^ 3 / SQRT(d),
+                g, v * SQRT(d),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Gravity + Escape Velocity
+            "gv", LET(
+                g, param_1,
+                v, param_2,
+                R, v ^ 2 / g,
+                M, v ^ 4 / g,
+                d, (g / v) ^ 2,
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Mass + Escape Velocity
+            "mv", LET(
+                M, param_1,
+                v, param_2,
+                R, M / v ^ 2,
+                g, v ^ 4 / M,
+                d, v ^ 6 / M ^ 2,
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Radius + Escape Velocity
+            "rv", LET(
+                R, param_1,
+                v, param_2,
+                g, v ^ 2 / R,
+                M, R * v ^ 2,
+                d, (v / R) ^ 2,
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Default fallback
+            NA()
+        ),
+        
+        // Format with headers and rounding
+        headers, {"M", "R", "d", "g", "v"},
+        values, ROUND(output, prec),
+        CHOOSE({1, 2}, TRANSPOSE(headers), TRANSPOSE(values))
+    )
 );
 
 /* ASTRO_PLANET_METRICS
@@ -877,142 +789,140 @@ ASTRO_PLANET_METRICS_SAFETY = LAMBDA(mode, param_1, param_2, [prec],
        v      1.039
 
 */
-
-
 ASTRO_PLANET_METRICS = LAMBDA(mode, param_1, param_2, [prec],
-  LET(
-    // Default precision
-    prec, IF(ISOMITTED(prec), 5, prec),
-
-    // Normalize input mode to lowercase
-    mode, LOWER(mode),
-
-    // Compute based on selected mode
-    output, SWITCH(
-      mode,
-      
-      // Mass + Density
-      "md", LET(
-        M, param_1,
-        d, param_2,
-        R, (M / d) ^ (1/3),
-        g, (M * d^2) ^ (1/3),
-        v, (M * SQRT(d)) ^ (1/3),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Mass + Radius
-      "mr", LET(
-        M, param_1,
-        R, param_2,
-        d, M / R^3,
-        g, M / R^2,
-        v, SQRT(M / R),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Mass + Gravity
-      "mg", LET(
-        M, param_1,
-        g, param_2,
-        R, SQRT(M / g),
-        d, SQRT(g^3 / M),
-        v, (M * g) ^ 0.25,
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Radius + Density
-      "rd", LET(
-        R, param_1,
-        d, param_2,
-        M, d * R^3,
-        g, d * R,
-        v, R * SQRT(d),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Radius + Gravity
-      "rg", LET(
-        R, param_1,
-        g, param_2,
-        M, g * R^2,
-        d, g / R,
-        v, SQRT(g * R),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Density + Gravity
-      "dg", LET(
-        d, param_1,
-        g, param_2,
-        R, g / d,
-        M, g^3 / d^2,
-        v, g / SQRT(d),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Density + Escape Velocity
-      "dv", LET(
-        d, param_1,
-        v, param_2,
-        R, v / SQRT(d),
-        M, v^3 / SQRT(d),
-        g, v * SQRT(d),
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Gravity + Escape Velocity
-      "gv", LET(
-        g, param_1,
-        v, param_2,
-        R, v^2 / g,
-        M, v^4 / g,
-        d, (g / v)^2,
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Mass + Escape Velocity
-      "mv", LET(
-        M, param_1,
-        v, param_2,
-        R, M / v^2,
-        g, v^4 / M,
-        d, v^6 / M^2,
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Radius + Escape Velocity
-      "rv", LET(
-        R, param_1,
-        v, param_2,
-        g, v^2 / R,
-        M, R * v^2,
-        d, (v / R)^2,
-        HSTACK(M, R, d, g, v)
-      ),
-
-      // Default fallback
-      NA()
-    ),
-
-    // Format with headers and rounding
-    headers, SWITCH(
-        mode,
-        "md", {"M ➔", "R", "d ➔", "g", "v"},
-        "mr", {"M ➔", "R ➔", "d", "g", "v"},
-        "mg", {"M ➔", "R", "d", "g ➔", "v"},
-        "rd", {"M", "R ➔", "d ➔", "g", "v"},
-        "rg", {"M", "R ➔", "d", "g ➔", "v"},
-        "dg", {"M", "R", "d ➔", "g ➔", "v"},
-        "dv", {"M", "R", "d ➔", "g", "v ➔"},
-        "gv", {"M", "R", "d", "g ➔", "v ➔"},
-        "mv", {"M ➔", "R", "d", "g", "v ➔"},
-        "rv", {"M", "R ➔", "d", "g", "v ➔"},
-        {"M", "R", "d", "g", "v"}  // fallback
+    LET(
+        // Default precision
+        prec, IF(ISOMITTED(prec), 5, prec),
+        
+        // Normalize input mode to lowercase
+        mode, LOWER(mode),
+        
+        // Compute based on selected mode
+        output, SWITCH(
+            mode,
+            
+            // Mass + Density
+            "md", LET(
+                M, param_1,
+                d, param_2,
+                R, (M / d) ^ (1 / 3),
+                g, (M * d ^ 2) ^ (1 / 3),
+                v, (M * SQRT(d)) ^ (1 / 3),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Mass + Radius
+            "mr", LET(
+                M, param_1,
+                R, param_2,
+                d, M / R ^ 3,
+                g, M / R ^ 2,
+                v, SQRT(M / R),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Mass + Gravity
+            "mg", LET(
+                M, param_1,
+                g, param_2,
+                R, SQRT(M / g),
+                d, SQRT(g ^ 3 / M),
+                v, (M * g) ^ 0.25,
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Radius + Density
+            "rd", LET(
+                R, param_1,
+                d, param_2,
+                M, d * R ^ 3,
+                g, d * R,
+                v, R * SQRT(d),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Radius + Gravity
+            "rg", LET(
+                R, param_1,
+                g, param_2,
+                M, g * R ^ 2,
+                d, g / R,
+                v, SQRT(g * R),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Density + Gravity
+            "dg", LET(
+                d, param_1,
+                g, param_2,
+                R, g / d,
+                M, g ^ 3 / d ^ 2,
+                v, g / SQRT(d),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Density + Escape Velocity
+            "dv", LET(
+                d, param_1,
+                v, param_2,
+                R, v / SQRT(d),
+                M, v ^ 3 / SQRT(d),
+                g, v * SQRT(d),
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Gravity + Escape Velocity
+            "gv", LET(
+                g, param_1,
+                v, param_2,
+                R, v ^ 2 / g,
+                M, v ^ 4 / g,
+                d, (g / v) ^ 2,
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Mass + Escape Velocity
+            "mv", LET(
+                M, param_1,
+                v, param_2,
+                R, M / v ^ 2,
+                g, v ^ 4 / M,
+                d, v ^ 6 / M ^ 2,
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Radius + Escape Velocity
+            "rv", LET(
+                R, param_1,
+                v, param_2,
+                g, v ^ 2 / R,
+                M, R * v ^ 2,
+                d, (v / R) ^ 2,
+                HSTACK(M, R, d, g, v)
+            ),
+            
+            // Default fallback
+            NA()
         ),
-    values, ROUND(output, prec),
-    CHOOSE({1, 2}, TRANSPOSE(headers), TRANSPOSE(values))
-  )
+        
+        // Format with headers and rounding
+        headers, SWITCH(
+            mode,
+            "md", {"M ➔", "R", "d ➔", "g", "v"},
+            "mr", {"M ➔", "R ➔", "d", "g", "v"},
+            "mg", {"M ➔", "R", "d", "g ➔", "v"},
+            "rd", {"M", "R ➔", "d ➔", "g", "v"},
+            "rg", {"M", "R ➔", "d", "g ➔", "v"},
+            "dg", {"M", "R", "d ➔", "g ➔", "v"},
+            "dv", {"M", "R", "d ➔", "g", "v ➔"},
+            "gv", {"M", "R", "d", "g ➔", "v ➔"},
+            "mv", {"M ➔", "R", "d", "g", "v ➔"},
+            "rv", {"M", "R ➔", "d", "g", "v ➔"},
+            {"M", "R", "d", "g", "v"} // fallback
+        ),
+        values, ROUND(output, prec),
+        CHOOSE({1, 2}, TRANSPOSE(headers), TRANSPOSE(values))
+    )
 );
 
 /* ASTRO_SYNODIC_SOLVER
@@ -1074,86 +984,82 @@ ASTRO_PLANET_METRICS = LAMBDA(mode, param_1, param_2, [prec],
    - This function is intended for advanced use cases and UI-integrated output.
 
 */
-
-
-ASTRO_SYNODIC_SOLVER =
-LAMBDA(val_1, val_2, [mode], [format], [prec],
-  LET(
-    // Handle optional arguments
-    raw_mode, IF(ISOMITTED(mode) + (mode = ""), "PQ", mode),
-    norm_mode, TEXTJOIN("",,SORT(MID(LOWER(raw_mode),SEQUENCE(LEN(raw_mode)),1))),
-    mode, norm_mode,
-
-    format, IF(ISOMITTED(format) + (format = ""), "bare", LOWER(format)),
-    prec, IF(ISOMITTED(prec), 4, prec),
-
-    // Input unpacking by mode
-    P_in, IF(OR(mode="pq", mode="ps"), val_1, NA()),
-    Q_in, IF(mode="pq", val_2, IF(mode="qs", val_1, NA())),
-    S_in, IF(OR(mode="ps", mode="qs"), val_2, NA()),
-
-    // P and Q ordering only used in 'pq' mode
-    P, IF(AND(ISNUMBER(P_in), ISNUMBER(Q_in)), MAX(P_in, Q_in), P_in),
-    Q, IF(AND(ISNUMBER(P_in), ISNUMBER(Q_in)), MIN(P_in, Q_in), Q_in),
-
-    // Synodic period calculation
-    S_calc, IF(P = Q, NA(), ROUND((P * Q) / (P - Q), prec)),
-
-    // Direction-aware inverse calculations
-    Q_calc, IF(OR(NOT(ISNUMBER(P)), NOT(ISNUMBER(S_in))), NA(),
-                ROUND((P * S_in) / ABS(P - S_in), prec)),
-
-    P_calc, IF(OR(NOT(ISNUMBER(Q)), NOT(ISNUMBER(S_in))), NA(),
-                ROUND((Q * S_in) / ABS(Q - S_in), prec)),
-
-    // Selected result values
-    P_val, IF(mode = "qs", P_calc, P),
-    Q_val, IF(mode = "ps", Q_calc, Q),
-    S_val, IF(mode = "pq", S_calc, S_in),
-
-    // Solved label
-    label, SWITCH(mode, "pq", "S", "ps", "Q", "qs", "P", "?"),
-
-    // Primary scalar result
-    result, SWITCH(mode, "pq", S_calc, "ps", Q_calc, "qs", P_calc, NA()),
-
-    // Verbose text output
-    verbose_out,
-      "P = " & IF(ISNUMBER(P_val), IF(mode = "qs", "☞ " & P_val, P_val), "—") & ", " &
-      "Q = " & IF(ISNUMBER(Q_val), IF(mode = "ps", "☞ " & Q_val, Q_val), "—") & ", " &
-      "S = " & IF(ISNUMBER(S_val), IF(mode = "pq", "☞ " & S_val, S_val), "—"),
-
-    // Spillable tabular outputs
-    row_out,
-      VSTACK(
-        HSTACK(
-          IF(mode="qs", "P ☞", "P ="),
-          IF(mode="ps", "Q ☞", "Q ="),
-          IF(mode="pq", "S ☞", "S =")
+ASTRO_SYNODIC_SOLVER = LAMBDA(val_1, val_2, [mode], [format], [prec],
+    LET(
+        // Handle optional arguments
+        raw_mode, IF(ISOMITTED(mode) + (mode = ""), "PQ", mode),
+        norm_mode, TEXTJOIN("", , SORT(MID(LOWER(raw_mode), SEQUENCE(LEN(raw_mode)), 1))),
+        mode, norm_mode,
+        format, IF(ISOMITTED(format) + (format = ""), "bare", LOWER(format)),
+        prec, IF(ISOMITTED(prec), 4, prec),
+        
+        // Input unpacking by mode
+        P_in, IF(OR(mode = "pq", mode = "ps"), val_1, NA()),
+        Q_in, IF(mode = "pq", val_2, IF(mode = "qs", val_1, NA())),
+        S_in, IF(OR(mode = "ps", mode = "qs"), val_2, NA()),
+        
+        // P and Q ordering only used in 'pq' mode
+        P, IF(AND(ISNUMBER(P_in), ISNUMBER(Q_in)), MAX(P_in, Q_in), P_in),
+        Q, IF(AND(ISNUMBER(P_in), ISNUMBER(Q_in)), MIN(P_in, Q_in), Q_in),
+        
+        // Synodic period calculation
+        S_calc, IF(P = Q, NA(), ROUND((P * Q) / (P - Q), prec)),
+        
+        // Direction-aware inverse calculations
+        Q_calc, IF(
+            OR(NOT(ISNUMBER(P)), NOT(ISNUMBER(S_in))),
+            NA(),
+            ROUND((P * S_in) / ABS(P - S_in), prec)
         ),
-        HSTACK(P_val, Q_val, S_val)
-      ),
-
-    col_out,
-      VSTACK(
-        HSTACK(IF(mode="qs", "P ☞", "P ="), P_val),
-        HSTACK(IF(mode="ps", "Q ☞", "Q ="), Q_val),
-        HSTACK(IF(mode="pq", "S ☞", "S ="), S_val)
-      ),
-
-    // Final switch for return type
-    output,
-      SWITCH(format,
-        "bare", result,
-        "labeled", label & " = " & result,
-        "verbose", verbose_out,
-        "row", row_out,
-        "col", col_out,
-        "Invalid format"
-      ),
-
-    output
-  )
+        P_calc, IF(
+            OR(NOT(ISNUMBER(Q)), NOT(ISNUMBER(S_in))),
+            NA(),
+            ROUND((Q * S_in) / ABS(Q - S_in), prec)
+        ),
+        
+        // Selected result values
+        P_val, IF(mode = "qs", P_calc, P),
+        Q_val, IF(mode = "ps", Q_calc, Q),
+        S_val, IF(mode = "pq", S_calc, S_in),
+        
+        // Solved label
+        label, SWITCH(mode, "pq", "S", "ps", "Q", "qs", "P", "?"),
+        
+        // Primary scalar result
+        result, SWITCH(mode, "pq", S_calc, "ps", Q_calc, "qs", P_calc, NA()),
+        
+        // Verbose text output
+        verbose_out, "P = " & IF(ISNUMBER(P_val), IF(mode = "qs", "☞ " & P_val, P_val), "—") &
+            ", " & "Q = " & IF(ISNUMBER(Q_val), IF(mode = "ps", "☞ " & Q_val, Q_val), "—") & ", " &
+            "S = " & IF(ISNUMBER(S_val), IF(mode = "pq", "☞ " & S_val, S_val), "—"),
+        
+        // Spillable tabular outputs
+        row_out, VSTACK(
+            HSTACK(
+                IF(mode = "qs", "P ☞", "P ="),
+                IF(mode = "ps", "Q ☞", "Q ="),
+                IF(mode = "pq", "S ☞", "S =")
+            ),
+            HSTACK(P_val, Q_val, S_val)
+        ),
+        col_out, VSTACK(
+            HSTACK(IF(mode = "qs", "P ☞", "P ="), P_val),
+            HSTACK(IF(mode = "ps", "Q ☞", "Q ="), Q_val),
+            HSTACK(IF(mode = "pq", "S ☞", "S ="), S_val)
+        ),
+        
+        // Final switch for return type
+        output, SWITCH(
+            format,
+            "bare", result,
+            "labeled", label & " = " & result,
+            "verbose", verbose_out,
+            "row", row_out,
+            "col", col_out,
+            "Invalid format"
+        ),
+        output
+    )
 );
 
 /* ASTRO_SYNODIC_PQ
@@ -1186,35 +1092,26 @@ LAMBDA(val_1, val_2, [mode], [format], [prec],
        Q =      687
        S ☞ =    779.8811
 */
-
-
-ASTRO_SYNODIC_PQ =
-LAMBDA(P, Q, [output], [prec],
-  LET(
-    // Handle optional arguments
-    mode, IF(ISOMITTED(output) + (output = ""), "bare", LOWER(output)),
-    digits, IF(ISOMITTED(prec), 4, prec),
-
-    // Sort for stability in synodic calculation
-    A, MAX(P, Q),
-    B, MIN(P, Q),
-
-    // Calculate synodic period
-    S, ROUND((A * B) / (A - B), digits),
-
-    // Two-column verbose output (labels preserved)
-    verbose,
-      VSTACK(
-        HSTACK("P =", P),
-        HSTACK("Q =", Q),
-        HSTACK("S ☞", S)
-      ),
-
-    // Output selection
-    result, IF(mode = "verbose", verbose, S),
-
-    result
-  )
+ASTRO_SYNODIC_PQ = LAMBDA(P, Q, [output], [prec],
+    LET(
+        // Handle optional arguments
+        mode, IF(ISOMITTED(output) + (output = ""), "bare", LOWER(output)),
+        digits, IF(ISOMITTED(prec), 4, prec),
+        
+        // Sort for stability in synodic calculation
+        A, MAX(P, Q),
+        B, MIN(P, Q),
+        
+        // Calculate synodic period
+        S, ROUND((A * B) / (A - B), digits),
+        
+        // Two-column verbose output (labels preserved)
+        verbose, VSTACK(HSTACK("P =", P), HSTACK("Q =", Q), HSTACK("S ☞", S)),
+        
+        // Output selection
+        result, IF(mode = "verbose", verbose, S),
+        result
+    )
 );
 
 /* ASTRO_SYNODIC_PS
@@ -1247,31 +1144,22 @@ LAMBDA(P, Q, [output], [prec],
        Q ☞ =    687
        S =      779.8811
 */
-
-
-ASTRO_SYNODIC_PS =
-LAMBDA(P, S, [output], [prec],
-  LET(
-    // Optional argument handling
-    mode, IF(ISOMITTED(output) + (output = ""), "bare", LOWER(output)),
-    digits, IF(ISOMITTED(prec), 4, prec),
-
-    // Compute Q (outer orbit)
-    Q, ROUND((P * S) / ABS(P - S), digits),
-
-    // Verbose spill output
-    verbose,
-      VSTACK(
-        HSTACK("P =", P),
-        HSTACK("Q ☞", Q),
-        HSTACK("S =", S)
-      ),
-
-    // Output choice
-    result, IF(mode = "verbose", verbose, Q),
-
-    result
-  )
+ASTRO_SYNODIC_PS = LAMBDA(P, S, [output], [prec],
+    LET(
+        // Optional argument handling
+        mode, IF(ISOMITTED(output) + (output = ""), "bare", LOWER(output)),
+        digits, IF(ISOMITTED(prec), 4, prec),
+        
+        // Compute Q (outer orbit)
+        Q, ROUND((P * S) / ABS(P - S), digits),
+        
+        // Verbose spill output
+        verbose, VSTACK(HSTACK("P =", P), HSTACK("Q ☞", Q), HSTACK("S =", S)),
+        
+        // Output choice
+        result, IF(mode = "verbose", verbose, Q),
+        result
+    )
 );
 
 /* ASTRO_SYNODIC_QS
@@ -1304,27 +1192,17 @@ LAMBDA(P, S, [output], [prec],
        Q =      687
        S =      779.8811
 */
-
-
-ASTRO_SYNODIC_QS =
-LAMBDA(Q, S, [output], [prec],
-  LET(
-    mode, IF(ISOMITTED(output) + (output = ""), "bare", LOWER(output)),
-    digits, IF(ISOMITTED(prec), 4, prec),
-
-    // Correct formula: P = (Q * S) / (Q + S)
-    P, ROUND((Q * S) / (Q + S), digits),
-
-    verbose,
-      VSTACK(
-        HSTACK("P ☞", P),
-        HSTACK("Q =", Q),
-        HSTACK("S =", S)
-      ),
-
-    result, IF(mode = "verbose", verbose, P),
-    result
-  )
+ASTRO_SYNODIC_QS = LAMBDA(Q, S, [output], [prec],
+    LET(
+        mode, IF(ISOMITTED(output) + (output = ""), "bare", LOWER(output)),
+        digits, IF(ISOMITTED(prec), 4, prec),
+        
+        // Correct formula: P = (Q * S) / (Q + S)
+        P, ROUND((Q * S) / (Q + S), digits),
+        verbose, VSTACK(HSTACK("P ☞", P), HSTACK("Q =", Q), HSTACK("S =", S)),
+        result, IF(mode = "verbose", verbose, P),
+        result
+    )
 );
 
 /* ASTRO_APPARENT_SOLAR_SIZE
@@ -1351,28 +1229,23 @@ LAMBDA(Q, S, [output], [prec],
    - Useful for worldbuilding, visual storytelling, and comparative astronomy.
    - May be expanded in future to support true angular units (arcmin, degrees, etc.)
 */
-
-ASTRO_APPARENT_SOLAR_SIZE =
-LAMBDA(radius, distance, [format], [prec],
-  LET(
-    // Set default precision if omitted
-    p, IF(ISOMITTED(prec), 4, prec),
-
-    // Core calculation: ratio of radius to distance
-    raw, radius / distance,
-
-    // Conditional output formatting
-    result,
-      IF(
-        OR(ISOMITTED(format), format = "formatted"),
-        TEXT(raw, "0." & REPT("0", p)) & "☉",  // e.g., "1.5450☉"
-        raw                                     // return scalar
-      ),
-
-    result
-  )
+ASTRO_APPARENT_SOLAR_SIZE = LAMBDA(radius, distance, [format], [prec],
+    LET(
+        // Set default precision if omitted
+        p, IF(ISOMITTED(prec), 4, prec),
+        
+        // Core calculation: ratio of radius to distance
+        raw, radius / distance,
+        
+        // Conditional output formatting
+        result, IF(
+            OR(ISOMITTED(format), format = "formatted"),
+            TEXT(raw, "0." & REPT("0", p)) & "☉", // e.g., "1.5450☉"
+            raw // return scalar
+        ),
+        result
+    )
 );
-
 
 /* ASTRO_ORBIT_CONFIGURATION_INDEX
    Purpose:
@@ -1396,12 +1269,7 @@ LAMBDA(radius, distance, [format], [prec],
    - This index is scale-invariant and symmetric.
    - Useful in worldbuilding, classification, and binary system modeling.
 */
-
-ASTRO_ORBIT_CONFIGURATION_INDEX =
-LAMBDA(mass1, mass2,
-  ABS(mass1 - mass2) / (mass1 + mass2)
-);
-
+ASTRO_ORBIT_CONFIGURATION_INDEX = LAMBDA(mass1, mass2, ABS(mass1 - mass2) / (mass1 + mass2));
 
 /* ASTRO_SPHERICAL_TO_CARTESIAN
    Purpose:
@@ -1421,29 +1289,26 @@ LAMBDA(mass1, mass2,
    - Compatible with mapping and simulation systems using spherical geometry.
    - Assumes standard right-handed coordinate system.
 */
-
-ASTRO_SPHERICAL_TO_CARTESIAN =
-LAMBDA(phi, theta, r, prec,
-  LET(
-    // Handle default precision
-    prec, IF(ISOMITTED(prec) + (prec < 0), 3, prec),
-
-    // Convert degrees to radians
-    phi_rad, RADIANS(phi),
-    theta_rad, RADIANS(theta),
-
-    // Trig calculations
-    x_raw, r * SIN(phi_rad) * COS(theta_rad),
-    y_raw, r * SIN(phi_rad) * SIN(theta_rad),
-    z_raw, r * COS(phi_rad),
-
-    // Round and return as 1×3 array
-    x, ROUND(x_raw, prec),
-    y, ROUND(y_raw, prec),
-    z, ROUND(z_raw, prec),
-
-    HSTACK(x, y, z)
-  )
+ASTRO_SPHERICAL_TO_CARTESIAN = LAMBDA(phi, theta, r, prec,
+    LET(
+        // Handle default precision
+        prec, IF(ISOMITTED(prec) + (prec < 0), 3, prec),
+        
+        // Convert degrees to radians
+        phi_rad, RADIANS(phi),
+        theta_rad, RADIANS(theta),
+        
+        // Trig calculations
+        x_raw, r * SIN(phi_rad) * COS(theta_rad),
+        y_raw, r * SIN(phi_rad) * SIN(theta_rad),
+        z_raw, r * COS(phi_rad),
+        
+        // Round and return as 1×3 array
+        x, ROUND(x_raw, prec),
+        y, ROUND(y_raw, prec),
+        z, ROUND(z_raw, prec),
+        HSTACK(x, y, z)
+    )
 );
 
 /* ASTRO_CARTESIAN_TO_SPHERICAL
@@ -1462,34 +1327,29 @@ LAMBDA(phi, theta, r, prec,
    - phi = inclination from vertical (0 = pole, 90 = equator)
    - theta = azimuthal direction from x-axis, 0–360°
 */
-
-ASTRO_CARTESIAN_TO_SPHERICAL =
-LAMBDA(x, y, z, prec,
-  LET(
-    // Handle default rounding precision
-    prec, IF(ISOMITTED(prec) + (prec < 0), 3, prec),
-
-    // Compute radial distance from origin
-    r, SQRT(x^2 + y^2 + z^2),
-
-    // Compute inclination angle from vertical axis (z)
-    phi, DEGREES(ACOS(z / r)),
-
-    // Compute azimuthal angle in x-y plane, normalized to [0, 360)
-    theta, MOD(DEGREES(ATAN2(y, x)), 360),
-
-    // Round all outputs
-    phi_out, ROUND(phi, prec),
-    theta_out, ROUND(theta, prec),
-    r_out, ROUND(r, prec),
-
-    // Return as 1×3 array
-    HSTACK(phi_out, theta_out, r_out)
-  )
+ASTRO_CARTESIAN_TO_SPHERICAL = LAMBDA(x, y, z, prec,
+    LET(
+        // Handle default rounding precision
+        prec, IF(ISOMITTED(prec) + (prec < 0), 3, prec),
+        
+        // Compute radial distance from origin
+        r, SQRT(x ^ 2 + y ^ 2 + z ^ 2),
+        
+        // Compute inclination angle from vertical axis (z)
+        phi, DEGREES(ACOS(z / r)),
+        
+        // Compute azimuthal angle in x-y plane, normalized to [0, 360)
+        theta, MOD(DEGREES(ATAN2(y, x)), 360),
+        
+        // Round all outputs
+        phi_out, ROUND(phi, prec),
+        theta_out, ROUND(theta, prec),
+        r_out, ROUND(r, prec),
+        
+        // Return as 1×3 array
+        HSTACK(phi_out, theta_out, r_out)
+    )
 );
-
-
-
 
 /* ASTRO_ORBIT_AXIS
    Purpose:
@@ -1508,15 +1368,13 @@ LAMBDA(x, y, z, prec,
    - Uses Newtonian form of Kepler's Third Law.
    - mass2 is converted from solar masses if present.
 */
-
 ASTRO_ORBIT_AXIS = LAMBDA(mass1, mass2, period,
-  LET(
-    m_2, IF((ISOMITTED(mass2)) + (mass2 = 1), 0, mass2 * 3.003E-6),
-    axis, POWER((POWER(period, 2) * (mass1 + m_2)), 1 / 3),
-    axis
-  )
+    LET(
+        m_2, IF((ISOMITTED(mass2)) + (mass2 = 1), 0, mass2 * 0.000003003),
+        axis, POWER((POWER(period, 2) * (mass1 + m_2)), 1 / 3),
+        axis
+    )
 );
-
 
 /* ASTRO_ORBIT_PERIOD
    Purpose:
@@ -1531,15 +1389,13 @@ ASTRO_ORBIT_AXIS = LAMBDA(mass1, mass2, period,
    Returns:
    - Orbital period in years
 */
-
 ASTRO_ORBIT_PERIOD = LAMBDA(mass1, mass2, axis,
-  LET(
-    m_2, IF((ISOMITTED(mass2)) + (mass2 = 1), 0, mass2 * 3.00273E-6),
-    period, SQRT(POWER(axis, 3) / (mass1 + m_2)),
-    period
-  )
+    LET(
+        m_2, IF((ISOMITTED(mass2)) + (mass2 = 1), 0, mass2 * 0.00000300273),
+        period, SQRT(POWER(axis, 3) / (mass1 + m_2)),
+        period
+    )
 );
-
 
 /* ASTRO_ORBIT_SUM_MASSES
    Purpose:
@@ -1553,11 +1409,7 @@ ASTRO_ORBIT_PERIOD = LAMBDA(mass1, mass2, axis,
    Returns:
    - Total system mass (in solar masses)
 */
-
-ASTRO_ORBIT_SUM_MASSES = LAMBDA(axis, period,
-  POWER(axis, 3) / POWER(period, 2)
-);
-
+ASTRO_ORBIT_SUM_MASSES = LAMBDA(axis, period, POWER(axis, 3) / POWER(period, 2));
 
 /* ASTRO_ORBIT_SOLVER
    Purpose:
@@ -1577,31 +1429,26 @@ ASTRO_ORBIT_SUM_MASSES = LAMBDA(axis, period,
    Notes:
    - mass2 is only relevant for "axis" and "period" modes.
 */
-
-ASTRO_ORBIT_SOLVER =
-LAMBDA(mode, val_1, val_2, mass2, precision,
-  LET(
-    m_2, IF(ISOMITTED(mass2) + (mass2 = 1), 0, mass2 * 3.003E-6),
-    prec, IF(ISOMITTED(precision), 4, precision),
-
-    result,
-      SWITCH(LOWER(mode),
-        "axis", POWER((POWER(val_2, 2) * (val_1 + m_2)), 1 / 3),
-        "period", SQRT(POWER(val_2, 3) / (val_1 + m_2)),
-        "mass", POWER(val_1, 3) / POWER(val_2, 2),
-        NA()
-      ),
-
-    label,
-      SWITCH(LOWER(mode),
-        "axis", "Axis = ",
-        "period", "Period = ",
-        "mass", "Mass = ",
-        "?"
-      ),
-
-    TEXT(result, "0." & REPT("0", prec)) & " " & label
-  )
+ASTRO_ORBIT_SOLVER = LAMBDA(mode, val_1, val_2, mass2, precision,
+    LET(
+        m_2, IF(ISOMITTED(mass2) + (mass2 = 1), 0, mass2 * 0.000003003),
+        prec, IF(ISOMITTED(precision), 4, precision),
+        result, SWITCH(
+            LOWER(mode),
+            "axis", POWER((POWER(val_2, 2) * (val_1 + m_2)), 1 / 3),
+            "period", SQRT(POWER(val_2, 3) / (val_1 + m_2)),
+            "mass", POWER(val_1, 3) / POWER(val_2, 2),
+            NA()
+        ),
+        label, SWITCH(
+            LOWER(mode),
+            "axis", "Axis = ",
+            "period", "Period = ",
+            "mass", "Mass = ",
+            "?"
+        ),
+        TEXT(result, "0." & REPT("0", prec)) & " " & label
+    )
 );
 
 /* ASTRO_DEGREES_TO_DMS_NUM
@@ -1614,23 +1461,20 @@ LAMBDA(mode, val_1, val_2, mass2, precision,
    Returns:
    - Numeric result in D.MMSS format
 */
-
-ASTRO_DEGREES_TO_DMS_NUM =
-LAMBDA(DecimalDegrees,
-  LET(
-    Deg, TRUNC(DecimalDegrees),                         // Whole degrees
-    FracPortion, ABS(DecimalDegrees - Deg),             // Fractional part
-    Minutes, FracPortion * 60,                          // Convert to minutes
-    Min_part, TRUNC(Minutes) / 100,                     // Integer minutes / 100
-    IntMin, INT(Minutes),
-    FracMin, ABS(Minutes - IntMin),                     // Remainder minutes
-    Seconds, FracMin * 60,                              // Convert to seconds
-    sec_part, Seconds / 10000,                          // Seconds / 10000
-    output, Deg + Min_part + sec_part,                  // Add all together
-    FIXED(output, 7)                                    // Return fixed decimal text
-  )
+ASTRO_DEGREES_TO_DMS_NUM = LAMBDA(DecimalDegrees,
+    LET(
+        Deg, TRUNC(DecimalDegrees), // Whole degrees
+        FracPortion, ABS(DecimalDegrees - Deg), // Fractional part
+        Minutes, FracPortion * 60, // Convert to minutes
+        Min_part, TRUNC(Minutes) / 100, // Integer minutes / 100
+        IntMin, INT(Minutes),
+        FracMin, ABS(Minutes - IntMin), // Remainder minutes
+        Seconds, FracMin * 60, // Convert to seconds
+        sec_part, Seconds / 10000, // Seconds / 10000
+        output, Deg + Min_part + sec_part, // Add all together
+        FIXED(output, 7) // Return fixed decimal text
+    )
 );
-
 
 /* ASTRO_DEGREES_TO_DMS_TEXT
    Purpose:
@@ -1643,21 +1487,18 @@ LAMBDA(DecimalDegrees,
    Returns:
    - String in "D° M' S.SS\"" format
 */
-
-ASTRO_DEGREES_TO_DMS_TEXT =
-LAMBDA(DecimalDegrees, precision,
-  LET(
-    decprec, IF(ISOMITTED(precision), 3, precision),
-    Deg, TRUNC(DecimalDegrees),
-    FracPortion, ABS(DecimalDegrees - Deg),
-    Minutes, FracPortion * 60,
-    IntMin, INT(Minutes),
-    FracMin, ABS(Minutes - IntMin),
-    Seconds, FracMin * 60,
-    Deg & "° " & IntMin & CHAR(39) & CHAR(32) & FIXED(Seconds, decprec) & CHAR(34)
-  )
+ASTRO_DEGREES_TO_DMS_TEXT = LAMBDA(DecimalDegrees, precision,
+    LET(
+        decprec, IF(ISOMITTED(precision), 3, precision),
+        Deg, TRUNC(DecimalDegrees),
+        FracPortion, ABS(DecimalDegrees - Deg),
+        Minutes, FracPortion * 60,
+        IntMin, INT(Minutes),
+        FracMin, ABS(Minutes - IntMin),
+        Seconds, FracMin * 60,
+        Deg & "° " & IntMin & CHAR(39) & CHAR(32) & FIXED(Seconds, decprec) & CHAR(34)
+    )
 );
-
 
 /* ASTRO_DMS_NUM_TO_DEGREES
    Purpose:
@@ -1669,14 +1510,12 @@ LAMBDA(DecimalDegrees, precision,
    Returns:
    - Decimal degrees
 */
-
-ASTRO_DMS_NUM_TO_DEGREES =
-LAMBDA(input,
-  LET(
-    degrees, TRUNC(input),                             // Whole degrees
-    minutes, TRUNC((input - degrees) * 100),           // Minutes portion
-    fractional_seconds, ((input * 100) - TRUNC(input * 100)) / 0.6, // Convert from decimal minutes to seconds
-    result, degrees + ((minutes + fractional_seconds) / 60),
-    result
-  )
+ASTRO_DMS_NUM_TO_DEGREES = LAMBDA(input,
+    LET(
+        degrees, TRUNC(input), // Whole degrees
+        minutes, TRUNC((input - degrees) * 100), // Minutes portion
+        fractional_seconds, ((input * 100) - TRUNC(input * 100)) / 0.6, // Convert from decimal minutes to seconds
+        result, degrees + ((minutes + fractional_seconds) / 60),
+        result
+    )
 );
