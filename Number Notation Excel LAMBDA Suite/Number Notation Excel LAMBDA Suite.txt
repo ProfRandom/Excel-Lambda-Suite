@@ -102,24 +102,26 @@ NUMNOTE_MAGNITUDE = LAMBDA(input, [decprec],
    This does not include the coefficient — just the symbolic representation of the scale.
 
    Returns:
-   - Either an "E+nn" tag or a "10^n" label representing the power of 10.
+   - Either an "E+nn" tag, a "10^n" label, or a "10ⁿ" label using superscript digits.
 
    Parameters:
    - input (required): A positive numeric value.
    - mode (optional):
        0 (default): "E+nn" format (e.g., "E+03")
        1         : "10^n" format (e.g., "10^3")
+       2         : "10ⁿ" format with Unicode superscripts (e.g., "10³", "10⁻³")
 
    Notes:
    - This function is intended for labeling, formatting, or annotation — not for math.
    - The coefficient (mantissa) is not included in the result.
    - Equivalent to extracting the exponent from scientific notation.
-   - Mode 2 from earlier versions has been removed as redundant (Excel supports it via TEXT(..., "0.00E+00"))
+   - Mode 2 provides a typographically nicer superscript option for exponents.
 
    Examples:
-     NUMNOTE_POWERTAG(4560)       → "E+03"
-     NUMNOTE_POWERTAG(0.00123, 1) → "10^-3"
-     TEXTJOIN("", , coeff, NUMNOTE_POWERTAG(x)) → Full label
+     NUMNOTE_POWERTAG(4560)          → "E+03"
+     NUMNOTE_POWERTAG(0.00123, 1)    → "10^-3"
+     NUMNOTE_POWERTAG(0.00123, 2)    → "10⁻³"
+     TEXTJOIN("", , coeff, NUMNOTE_POWERTAG(x,2)) → Full label with superscripts
 
    See also:
    - NUMNOTE_MAGNITUDE — adds metric suffixes like "k", "M", etc.
@@ -127,30 +129,39 @@ NUMNOTE_MAGNITUDE = LAMBDA(input, [decprec],
 */
 
 
+
 NUMNOTE_POWERTAG = LAMBDA(input, [mode],
     LET(
-        // === Set default output mode ===
-        // mode = 0 → "E+nn" (default)
-        // mode = 1 → "10^n"
+        // === Default mode ===
         mode, IF(ISOMITTED(mode), 0, mode),
 
-        // === Calculate the base-10 exponent ===
-        // TRUNC(LOG10(...)) gives us the order-of-magnitude power
+        // === Calculate exponent ===
         mag, TRUNC(LOG10(input)),
+        magTxt, TEXT(mag,"0"),
 
-        // === Format based on mode ===
-        // Mode 0 → scientific tag (e.g., E+03)
-        // Mode 1 → math expression (e.g., 10^3)
+        // === Superscript conversion inline ===
+        magSuper, TEXTJOIN("",
+            ,
+            MAP(
+                MID(magTxt, SEQUENCE(LEN(magTxt)), 1),
+                LAMBDA(ch,
+                    IF(ch="-","⁻",
+                       MID("⁰¹²³⁴⁵⁶⁷⁸⁹", VALUE(ch)+1, 1)
+                    )
+                )
+            )
+        ),
+
+        // === Mode selection ===
         result, SWITCH(
             mode,
-            0, "E+" & TEXT(mag, "00"),
+            0, "E" & TEXT(mag,"00"),
             1, "10^" & mag,
+            2, "10" & magSuper,
             "Invalid mode"
         ),
 
-        // === Return result ===
         result
     )
 );
-
 
